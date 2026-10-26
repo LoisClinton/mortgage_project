@@ -1,8 +1,4 @@
-"""Load and inspect the supplied synthetic mortgage observations.
-
-Week 7 teaching scaffold. The audit provides evidence for learners to
-interpret; it does not select features or complete the assessed data analysis.
-"""
+"""Read the synthetic mortgage data and print an explicit preparation audit."""
 from pathlib import Path
 import pandas as pd
 
@@ -11,7 +7,7 @@ TARGET = 'repayment_difficulty_12m'
 
 
 def load_data(path=DATA_FILE):
-    """Load CSV and confirm the identifier and observed target exist."""
+    """Load records and reject an invalid or incomplete observed target."""
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f'Mortgage dataset not found: {path}')
@@ -25,13 +21,19 @@ def load_data(path=DATA_FILE):
 
 
 def print_audit(df):
-    """Show factual checks; learners must explain what the findings mean."""
+    """Print auditable evidence, without choosing features automatically."""
     print('Rows and columns:', df.shape)
     print('\nData types:\n', df.dtypes.to_string())
     print('\nMissing values:\n', df.isna().sum().to_string())
     print('\nTarget distribution:\n', df[TARGET].value_counts().sort_index().to_string())
+    print('\nTarget percentages:\n', (df[TARGET].value_counts(normalize=True).sort_index() * 100).round(1).to_string())
     print('\nDuplicate application IDs:', df['application_id'].duplicated().sum())
-    # LEARNER: investigate outliers, meaning, availability and fairness-related proxies.
+    print('Duplicate entire records:', df.duplicated().sum())
+    print('\nSelected numeric ranges:')
+    for field in ('credit_score', 'debt_to_income_ratio', 'loan_to_value_pct', 'missed_payments_24m'):
+        print(f'  {field}: min={df[field].min()}, max={df[field].max()}')
+    print('\nReview timing of each candidate feature before using it at application time.')
+    print('Never use application_id or the observed target as a predictor.')
 
 
 if __name__ == '__main__':
