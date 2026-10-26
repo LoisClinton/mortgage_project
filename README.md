@@ -2,7 +2,7 @@
 
 This is a **working, deliberately limited tutor-provided ML baseline**; it is **not a finished Assignment 2 solution**. Read `../START_HERE.md`, `../CODE_WALKTHROUGH.md`, `../DATA_DICTIONARY.md` and the approved brief in the parent folder.
 
-## Quick start (Windows PowerShell from this folder)
+## Quick start
 
 **macOS / Linux:**
 
@@ -28,6 +28,16 @@ py -m venv .venv
 ```
 
 The supplied dataset is already in `data/mortgage_data.csv`. The program uses only **synthetic data**. Do not use real applicant details.
+
+### Automatic development logging
+
+The repository includes a versioned `post-commit` hook that records each completed commit in `DEVELOPMENT_LOG.md`. Enable it once from this folder:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+After a commit, review the new log row and commit that generated log update **_with_** the next change. The hook records the commit subject, changed files, remote commit link, and the result of the documented validation command. It does not amend commits automatically.
 
 ### What is working?
 
