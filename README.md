@@ -4,6 +4,20 @@ This is a **working, deliberately limited tutor-provided ML baseline**; it is **
 
 ## Quick start (Windows PowerShell from this folder)
 
+**macOS / Linux:**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m src.data
+python -m src.main
+python -m src.applicant_example
+python -m unittest discover -s tests -v
+```
+
+**Windows PowerShell:**
+
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -16,6 +30,7 @@ py -m venv .venv
 The supplied dataset is already in `data/mortgage_data.csv`. The program uses only **synthetic data**. Do not use real applicant details.
 
 ### What is working?
+
 - Data audit (`src/data.py`)
 - A basic two-feature Logistic Regression pipeline with training-only imputation/scaling, a majority-class reference and initial held-out evaluation (`src/model.py`, `src/main.py`)
 - Saved model and sample applicant **scoring** (not decision-making) (`src/applicant_example.py`)
