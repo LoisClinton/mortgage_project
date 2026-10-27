@@ -2,6 +2,10 @@
 import math
 from numbers import Real
 
+# Temporary thresholds for triggering different levels of review based on model score.
+LOWER_REVIEW_THRESHOLD = 0.25
+HIGHER_REVIEW_THRESHOLD = 0.50
+
 
 def validate_application_fields(application, required_fields):
     """Reject absent, blank or non-finite values in the selected fields."""
@@ -26,10 +30,27 @@ def validate_score(score):
         raise ValueError('Model score must be finite and between 0 and 1')
     return float(score)
 
-
+# Temporary advisory decision logic.
+# Determine the advisory decision based on the model score and application fields.
 def advisory_decision(score, application):
-    """LEARNER TASK: implement their own documented decision table."""
-    validate_score(score)
-    # LEARNER: implement validated application fields, boundary cases and
-    # advisory routing. The system must not automatically approve/decline.
-    raise NotImplementedError('Design and test your own advisory decision rules')
+    score = validate_score(score)
+    validate_application_fields(
+        application,
+        ["credit_score", "debt_to_income_ratio"],
+    )
+
+    if score >= HIGHER_REVIEW_THRESHOLD:
+        outcome = "ENHANCED REVIEW"
+        reason = "The model score is in the higher review band."
+    elif score >= LOWER_REVIEW_THRESHOLD:
+        outcome = "STANDARD REVIEW"
+        reason = "The model score is in the middle review band."
+    else:
+        outcome = "STANDARD REVIEW"
+        reason = "The model score is in the lower review band."
+
+    return {
+        "outcome": outcome,
+        "reason": reason,
+        "status": "HUMAN REVIEW REQUIRED",
+    }

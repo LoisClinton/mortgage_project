@@ -21,7 +21,7 @@ def load_data(path=DATA_FILE):
 
 
 def print_audit(df):
-    """Print auditable evidence, without choosing features automatically."""
+    print('\n ------------ START OF AUDIT ------------')
     print('Rows and columns:', df.shape)
     print('\nData types:\n', df.dtypes.to_string())
     print('\nMissing values:\n', df.isna().sum().to_string())
@@ -32,8 +32,7 @@ def print_audit(df):
     print('\nSelected numeric ranges:')
     for field in ('credit_score', 'debt_to_income_ratio', 'loan_to_value_pct', 'missed_payments_24m'):
         print(f'  {field}: min={df[field].min()}, max={df[field].max()}')
-    print('\nReview timing of each candidate feature before using it at application time.')
-    print('Never use application_id or the observed target as a predictor.')
+    print('\n ------------ END OF AUDIT ------------')
 
 
 if __name__ == '__main__':
