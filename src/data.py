@@ -88,6 +88,69 @@ def print_audit(df):
         ]
     ]
 
+    # Check DTI calculation possibilities
+    monthly_income = checks["annual_income_gbp"] / 12
+    monthly_debt = checks["monthly_debt_commitments_gbp"]
+    loan = checks["requested_loan_gbp"]
+
+    # Hypothesis A: Each applicant's recorded interest rate
+    variable_rate_dti = (
+        monthly_debt
+        + loan * (checks["interest_rate_pct"] / 100) / 12
+    ) / monthly_income
+
+    # Hypothesis B: Fixed 4.5% rate
+    fixed_4_5_rate_dti = (
+        monthly_debt
+        + loan * 0.045 / 12
+    ) / monthly_income
+
+    # Hypothesis C: Fixed 5% rate
+    fixed_5_rate_dti = (
+        monthly_debt
+        + loan * 0.05 / 12
+    ) / monthly_income
+
+    # Hypothesis D: Fixed 5.5% rate
+    fixed_5_5_rate_dti = (
+        monthly_debt
+        + loan * 0.055 / 12
+    ) / monthly_income
+
+    # Hypothesis E: Fixed 6% rate
+    fixed_6_rate_dti = (
+        monthly_debt
+        + loan * 0.06 / 12
+    ) / monthly_income
+
+    actual = checks["debt_to_income_ratio"]
+    dti_tolerance = 0.01
+    dti_candidates = {
+        "Variable rate": variable_rate_dti,
+        "Fixed 4.5% rate": fixed_4_5_rate_dti,
+        "Fixed 5% rate": fixed_5_rate_dti,
+        "Fixed 5.5% rate": fixed_5_5_rate_dti,
+        "Fixed 6% rate": fixed_6_rate_dti,
+    }
+    dti_comparison = {
+        name: {
+            "mismatches": int(
+                ((candidate - actual).abs() > dti_tolerance).sum()
+            ),
+            "median_absolute_difference": float(
+                (candidate - actual).abs().median()
+            ),
+        }
+        for name, candidate in dti_candidates.items()
+    }
+    most_likely_dti = min(
+        dti_comparison,
+        key=lambda name: (
+            dti_comparison[name]["mismatches"],
+            dti_comparison[name]["median_absolute_difference"],
+        ),
+    )
+
     # Print the audit.
     print('\n ------------ START OF AUDIT ------------')
     print('Rows and columns:', checks.shape)
@@ -109,6 +172,44 @@ def print_audit(df):
     print(loan_mismatches.to_string(index=False))
     print("\nRecorded / calculated LTV inconsistencies (> 0.02 percentage points):")
     print(ltv_mismatches.to_string(index=False))
+    print("\nDTI Hypothesis A (Variable rate) mismatches:")
+    print(
+        dti_comparison["Variable rate"]["mismatches"],
+        f"mismatches (absolute difference > {dti_tolerance})",
+    )
+    print("\nDTI Hypothesis B (Fixed 4.5% rate) mismatches:")
+    print(
+        dti_comparison["Fixed 4.5% rate"]["mismatches"],
+        f"mismatches (absolute difference > {dti_tolerance})",
+    )
+    print("\nDTI Hypothesis C (Fixed 5% rate) mismatches:")
+    print(
+        dti_comparison["Fixed 5% rate"]["mismatches"],
+        f"mismatches (absolute difference > {dti_tolerance})",
+    )
+    print("\nDTI Hypothesis D (Fixed 5.5% rate) mismatches:")
+    print(
+        dti_comparison["Fixed 5.5% rate"]["mismatches"],
+        f"mismatches (absolute difference > {dti_tolerance})",
+    )
+    print("\nDTI Hypothesis E (Fixed 6% rate) mismatches:")
+    print(
+        dti_comparison["Fixed 6% rate"]["mismatches"],
+        f"mismatches (absolute difference > {dti_tolerance})",
+    )
+    print("\nMost likely DTI calculation:")
+    print(f"- {most_likely_dti}")
+    print(
+        f"- {dti_comparison[most_likely_dti]['mismatches']} mismatches "
+        f"(absolute difference > {dti_tolerance})"
+    )
+    print(
+        "- Median absolute difference: "
+        f"{dti_comparison[most_likely_dti]['median_absolute_difference']:.3f}"
+    )
+    print(
+        "CLOSEST tested hypothesis, NOT a confirmed definition of the recorded DTI."
+    )
     print('\n ------------ END OF AUDIT ------------')
 
 
