@@ -18,7 +18,13 @@ from sklearn.preprocessing import StandardScaler
 from src.data import TARGET
 
 # TUTOR SELECTED: two numeric predictors only, intentionally limited.
-BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio']
+# BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio']
+# MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'baseline_model.joblib'
+
+
+
+# STUDENT SELECTED: [still yet to decide].
+BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio',]
 MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'baseline_model.joblib'
 
 
