@@ -101,7 +101,27 @@ The dataset contains 800 applications and 19 fields.
 
 #### Interquartile Range (IQR) screening to identify statistically unusual values:
 
-[UPDATE ONCE DONE]
+**IQR SCREENING:**
+| field | q1 | q3 | lower_fence | upper_fence | flagged_count |
+| ------------ | --------- | --------- | --------- | --------- | --------- |
+| annual_income_gbp | 40150.000 | 68857.00000 | -2910.500000 | 111917.500000 | 27 |
+| property_value_gbp | 196644.500 | 315957.00000 | 17675.750000 | 494925.750000 | 21 |
+| deposit_gbp | 30121.250 | 63414.50000 | -19818.625000 | 113354.375000 | 25 |
+| requested_loan_gbp | 156799.000 | 252050.50000 | 13921.750000 | 394927.750000 | 24 |
+| loan_to_value_pct | 76.310 | 86.44750 | 61.103750 | 101.653750 | 4 |
+| monthly_debt_commitments_gbp | 192.750 | 510.00000 | -283.125000 | 985.875000 | 27 |
+| debt_to_income_ratio | 0.207 | 0.41825 | -0.109875 | 0.735125 | 31 |
+| credit_score | 649.000 | 738.00000 | 515.500000 | 871.500000 | 3 |
+| employment_years | 3.500 | 9.10000 | -4.900000 | 17.500000 | 20 |
+| savings_gbp | 4627.250 | 18488.50000 | -16164.625000 | 39280.375000 | 49 |
+| missed_payments_24m | 0.000 | 1.00000 | -1.500000 | 2.500000 | 12 |
+| credit_utilisation_pct | 23.810 | 52.18000 | -18.745000 | 94.735000 | 0 |
+| term_years | 20.000 | 30.00000 | 5.000000 | 45.000000 | 0 |
+| interest_rate_pct | 4.310 | 5.29000 | 2.840000 | 6.760000 | 7 |
+
+#### Domain validation:
+
+No domain-invalid values found.
 
 #### Consistency and contradiction checks:
 

@@ -25,6 +25,97 @@ def load_data(path=DATA_FILE):
         raise ValueError('Expected a complete binary repayment_difficulty_12m target')
     return df
 
+# Identify statistically unusual numeric predictor values using the IQR method.
+def iqr_outlier_summary(df): 
+    excluded = {"application_id", TARGET}
+    numeric_columns = [
+        column
+        for column in df.select_dtypes(include="number").columns
+        if column not in excluded
+        and df[column].nunique(dropna=True) > 2
+    ]
+
+    findings = []
+
+    for column in numeric_columns:
+        values = df[column].dropna()
+        q1 = values.quantile(0.25)
+        q3 = values.quantile(0.75)
+        iqr = q3 - q1
+        lower_fence = q1 - 1.5 * iqr
+        upper_fence = q3 + 1.5 * iqr
+
+        flagged = df.loc[
+            (df[column] < lower_fence) | (df[column] > upper_fence),
+            ["application_id", column],
+        ]
+
+        findings.append({
+            "field": column,
+            "q1": q1,
+            "q3": q3,
+            "lower_fence": lower_fence,
+            "upper_fence": upper_fence,
+            "flagged_count": len(flagged),
+        })
+
+    return pd.DataFrame(findings)
+
+# Identify domain validation issues for numeric and binary fields.
+def domain_validation_summary(df):
+    findings = []
+
+    non_negative_fields = [
+        "annual_income_gbp",
+        "property_value_gbp",
+        "deposit_gbp",
+        "requested_loan_gbp",
+        "monthly_debt_commitments_gbp",
+        "savings_gbp",
+        "employment_years",
+        "missed_payments_24m",
+        "interest_rate_pct",
+    ]
+
+    for field in non_negative_fields:
+        invalid_count = int((df[field] < 0).sum())
+        findings.append({
+            "field": field,
+            "rule": "value must be >= 0",
+            "invalid_count": invalid_count,
+        })
+
+    bounded_fields = {
+        "loan_to_value_pct": (0, 100),
+        "credit_utilisation_pct": (0, 100),
+    }
+
+    for field, (lower, upper) in bounded_fields.items():
+        invalid_count = int(
+            ((df[field] < lower) | (df[field] > upper)).sum()
+        )
+        findings.append({
+            "field": field,
+            "rule": f"value must be between {lower} and {upper}",
+            "invalid_count": invalid_count,
+        })
+
+    binary_fields = [
+        "previous_default_flag",
+        "repayment_difficulty_12m",
+    ]
+
+    for field in binary_fields:
+        invalid_count = int(
+            (~df[field].isin([0, 1])).sum()
+        )
+        findings.append({
+            "field": field,
+            "rule": "value must be 0 or 1",
+            "invalid_count": invalid_count,
+        })
+
+    return pd.DataFrame(findings)
 
 def print_audit(df):
     # Create a copy of the DataFrame to perform checks without modifying the original.
@@ -175,6 +266,14 @@ def print_audit(df):
         ascending=False
     )
 
+    iqr_checks = df.copy() # Different copy of df for IQR outlier analysis
+    iqr_summary = iqr_outlier_summary(iqr_checks) 
+
+    # Perform domain validation on the checks DataFrame
+    domain_checks = df.copy() # Different copy of df for domain validation
+    validation_summary = domain_validation_summary(domain_checks)
+
+
     # Print the audit.
     print('\n ------------ START OF AUDIT ------------')
     print('Rows and columns:', checks.shape)
@@ -237,6 +336,17 @@ def print_audit(df):
     print('\nCHECK FOR STRONG CORRELATIONs:')
     print('\nTop 20 strongest absolute correlations:')
     print(pairs.head(20))
+    print("\nIQR SCREENING:")
+    print(iqr_summary.to_string(index=False))
+    print("\nDOMAIN VALIDATION:")
+    print(
+        validation_summary[
+            validation_summary["invalid_count"] > 0
+        ].to_string(index=False)
+    )
+
+    if validation_summary["invalid_count"].sum() == 0:
+        print("No domain-invalid values found.")
     print('\n ------------ END OF AUDIT ------------')
 
 
