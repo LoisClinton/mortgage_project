@@ -1,6 +1,7 @@
 """Read the synthetic mortgage data and print an explicit preparation audit."""
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 DATA_FILE = Path(__file__).resolve().parents[1] / 'data' / 'mortgage_data.csv'
 TARGET = 'repayment_difficulty_12m'
@@ -151,6 +152,29 @@ def print_audit(df):
         ),
     )
 
+    # Check correlations excluding the identifier and outcome
+    corr_checks = df.copy() # Different copy of df so that values in 'checks' arent evaluated in correlation analysis
+    numeric_features = corr_checks.drop(
+        columns=["application_id", "repayment_difficulty_12m"]
+    ).select_dtypes(include="number")
+
+    correlation_matrix = numeric_features.corr()
+
+    # Extract each pair only once to avoid duplicate correlation entries
+    upper_triangle = correlation_matrix.where(
+        np.triu(
+            np.ones(correlation_matrix.shape),
+            k=1
+        ).astype(bool)
+    )
+    pairs = upper_triangle.stack()
+
+    # Strongest absolute correlations first
+    pairs = pairs.sort_values(
+        key=lambda values: values.abs(),
+        ascending=False
+    )
+
     # Print the audit.
     print('\n ------------ START OF AUDIT ------------')
     print('Rows and columns:', checks.shape)
@@ -210,6 +234,9 @@ def print_audit(df):
     print(
         "CLOSEST tested hypothesis, NOT a confirmed definition of the recorded DTI."
     )
+    print('\nCHECK FOR STRONG CORRELATIONs:')
+    print('\nTop 20 strongest absolute correlations:')
+    print(pairs.head(20))
     print('\n ------------ END OF AUDIT ------------')
 
 
