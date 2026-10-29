@@ -12,7 +12,7 @@ The legal and practical basis is that _FCA rule MCOB 11.6.2R_ generally requires
 
 - `annual_income_gbp`
   - Income declared and assessed using evidence available at application.
-  - Need specificiy or investication regarding gross/net income, and individual/joint income.
+  - Need specificity or investigation regarding gross/net income, and individual/joint income.
   - FCA rules require income evidence.
 - `property_value_gbp`
   - Initially the stated purchase price or estimated value; could subsequently the lender’s valuation.
@@ -24,54 +24,81 @@ The legal and practical basis is that _FCA rule MCOB 11.6.2R_ generally requires
   - Could be known if it is the amount 'requested' at that stage (which is inferred from the word 'requested' in the field name), rather than a later approved or advanced amount.
 - `loan_to_value_pct`
   - Loan amount ÷ relevant property value × 100.
-  - Need specificiy or investication regarding whether the denominator is an initial estimate/lender valuation and whether financed fees are included.
+  - Need specificity or investigation regarding whether the denominator is an initial estimate/lender valuation and whether financed fees are included.
   - FCA disclosure rules explicitly address LTV.
 - `monthly_debt_commitments_gbp`
   - Could be known if these are existing monthly debt obligations established during assessment, (need clarity over when ongoing debts will reduce or increase).
-  - Need specificiy or investication regarding whether this is included in `debt_to_income_ratio` or not.
+  - Need specificity or investigation regarding whether this is included in `debt_to_income_ratio`.
   - FCA rules require reasonable steps to establish actual outstanding commitments so there is reasonable justification to assume this was recorded before.
 - `debt_to_income_ratio`
   - Could be known since this is calculable from information available at application time. Largely depends on if a fixed interest rate is used to evaluate this at application time.
-  - Need to define the DTI formula: _monthly debt payments ÷ monthly income_ differs from _outstanding debt ÷ annual income_ etc. Also a proposed mortgage payment might be included if known. The field name does not establish which measure was used so we must test whether interest rate recorded in data was known at time or whether a fixed rate was used.
+  - Need to define the DTI formula: _monthly debt payments ÷ monthly income_ differs from _outstanding debt ÷ annual income_, and a proposed mortgage payment might also be included. The field name does not establish which measure was used, so candidate formulas were tested.
 - `credit_score`
   - A score most likely obtained or calculated during assessment.
 - `employment_type`
   - Could be known if it is employment status at time of application.
 - `employment_years`
   - Could be known if it is historical tenure established from the application/supporting evidence.
-  - Need to define whether this means current employer, continuous employment or time self-employed; those are different measures.
+  - Need to define whether this means current employer, continuous employment, or time self-employed; these are different measures.
 - `savings_gbp`
   - Could be savings established from statements or other evidence at time of application.
   - However a lender does not automatically know every savings account, and evidence of the deposit does not necessarily establish total savings.
-  - Need specificiy or investication regarding whether this includes deposit. A simple calculation should work to verify.
+  - Need specificity or investigation regarding whether this includes the deposit. A consistency calculation can help investigate this.
 - `missed_payments_24m`
   - Could be known if backward looking. Such as missed payments in the 24 months before assessment, drawn from available credit history.
-  - Could verify this by comparing it to `repayment_difficulty_12m` if there are any people who flag as a 1 for this field but dont show any `missed_payments_24m` then `missed_payments_24m` can be reasonably assumed to be at a different time to the 12m period (most likely before) for the purposes of our model.
+  - Could work towards verifying this by comparing it to `repayment_difficulty_12m` if there are any people who flag as a 1 for this field but dont show any `missed_payments_24m` then `missed_payments_24m` can be reasonably assumed to be at a different time to the 12m period (most likely before) for the purposes of our model.
+  - Its timing cannot be proved from the data alone; it must be confirmed as a pre-application lookback before use.
 - `credit_utilisation_pct`
   - Reported revolving-credit balances relative to limits, likely using the report available at application.
 - `previous_default_flag`
   - Defaults likely recorded before assessment inferred from 'previous'.
-  - It likely doesnt represent perfect knowledge of lifetime defaults: Experian explains that defaults generally disappear from credit reports after six years.
+  - It likely doesn't represent perfect knowledge of lifetime defaults: credit-report retention periods and reporting coverage limit what can be inferred (Experian explains that defaults generally disappear from credit reports after six years).
 - `term_years`
-  - Could be known depending on if this is the requested/proposed mortgage term.
-  - Loan duration usually appears in pre-application disclosures but a later revised or final term is a different version. Could probably calculate this.
+  - Could be known if this is the requested/proposed mortgage term.
+  - A later revised or final term is a different version, so its timing must be confirmed.
 - `interest_rate_pct`
-  - Could be known if this is the pre-disclosed rate. Could check this in relation to other values to find out.
-  - FCA rules require pre-application disclosures containing the borrowing rate. However tests seem to reveal that DTI is calculated with a fixed rate so this might only be known after.
+  - The recorded rate may be a pre-decision assumption or a final offered rate. Its timing must be confirmed before use.
+  - Tests seem to indicate that DTI is calculated with a fixed rate so this might only be known after.
 - `application_channel`
   - The route through which the application arrived, such as broker, branch or online. This is operational metadata knowable on receipt (that is a practical inference).
 - `repayment_difficulty_12m`
   - This is the following 12 months. A future outcome, unavailable at the original decision.
   - Not necessarily default (do not label its score a PD).
-  - Exact definition of 'observed repayment difficulty' isnt provided.
+  - Exact definition of 'observed repayment difficulty' isn't provided.
   - THIS IS OUR TARGET.
 
-#### Assumptions (continuously updated):
+#### Assumptions and field-selection decision:
 
-- `missed_payments_24m` and `previous_default_flag` assumed these are usuable and that relevant history predates the application.
-- `credit_score` and `credit_utilisation_pct` assumed to come from a credit report available at assessment.
+- **Valid candidates, subject to timing and definition checks:**
 
-#### The following fields require caution/ action/ investigation:
+- **Conditional candidates:**
+  - `annual_income_gbp` investigate availability and interpretation.
+  - `property_value_gbp`
+  - `deposit_gbp`
+  - `requested_loan_gbp`
+  - `loan_to_value_pct`
+  - `monthly_debt_commitments_gbp`
+  - `debt_to_income_ratio`
+  - `credit_score`
+  - `employment_type`
+  - `employment_years`
+  - `savings_gbp`
+  - `missed_payments_24m` retained only if the relevant history predates assessment
+  - `credit_utilisation_pct`
+  - `previous_default_flag` retained only if the relevant history predates assessment
+  - `term_years`
+
+- **Excluded from predictors:**
+  - `application_id` excluded as it is an identifier.
+  - `application_channel` should be excluded from the model because it is an administrative variable with proxy and fairness concerns.
+  - `repayment_difficulty_12m` is the future target and must never be an input.
+  - `interest_rate_pct` excluded as the investigation shows indication it may not have been known at application time.
+
+IQR flags are statistical screening results, not proof that a value is invalid.
+For example, a high income, property value, or savings balance may be genuine.
+Some lower fences are negative because the IQR formula is distribution-based; this does not make negative financial values valid.
+Domain rules are checked separately.
+The screening therefore informs review rather than automatic deletion or replacement.
 
 **Action Points:**
 
@@ -158,7 +185,11 @@ Recorded DTI Checks:
 - 0 mismatches (absolute difference > 0.01)
 - Median absolute difference: 0.000
 
-The recorded DTI most closely matches the tested formula using a fixed 5.5% rate, with zero differences above the chosen 0.01 tolerance.(CLOSEST tested hypothesis, NOT a confirmed definition of the recorded DTI.)
+The recorded DTI most closely matches the tested simplified formula using a fixed
+5.5% rate, with zero differences above the chosen 0.01 tolerance. This is the
+closest tested hypothesis, not a confirmed definition of the recorded DTI or
+real-world ground truth. The result does not prove that `interest_rate_pct` was not
+available before the lending decision but it is wise to keep it seperate to avoid leakage.
 
 ### Are highly related variables providing useful information, or simply repeating each other?
 
