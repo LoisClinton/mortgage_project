@@ -69,24 +69,24 @@ The legal and practical basis is that _FCA rule MCOB 11.6.2R_ generally requires
 
 #### Assumptions and field-selection decision:
 
-- **Valid candidates, subject to timing and definition checks:**
+- **Valid candidates:**
+  - `property_value_gbp` assumed to be recorded at time of application.
+  - `deposit_gbp` assumed to be recorded at time of application but may be _related_ to `requested_loan_gbp` and `loan_to_value_pct`.
+  - `requested_loan_gbp` assumed to be recorded at time of application. The assumption is more safe because of the fields name 'requested'.
+  - `loan_to_value_pct` assumed to be recorded at time of application. My LTV test shows this is most likely (`requested_loan_gbp` / `property_value_gbp`) \* 100.
+  - `debt_to_income_ratio` assumed to be recorded before a decision is made (which is where we would encounter a timing or leakage issue). Investigation shows it is likely: (`monthly_debt_commitments_gbp` + `requested_loan_gbp` \* 0.055/12 ) / (`annual_income_gbp`/12). It doesnt seem to use `interest_rate_pct` for its calculation.
+  - `monthly_debt_commitments_gbp` assumed to be recorded at time of application. Is _related_ to `debt_to_income_ratio` but may provide new information.
+  - `credit_score` assumed to be recorded at time of application. Many missing values that need handling.
+  - `savings_gbp` assumed to be recorded at time of application. Many missing values that need handling. Some uncertainty about definition and visibility.
+  - `missed_payments_24m` assumed to be recorded at time of application for the previous 24 months. Investigation shows `missed_payments_24m` was recorded at a different time to the TARGET (assumed before).
+  - `credit_utilisation_pct` assumed to be recorded at time of application. Many missing values that need handling. Credit score usually takes monthly credit utilisation into account but any values that are missing a credit score seem to atleast contain credit utilisation and vice versa.
+  - `previous_default_flag` retained only if the relevant history predates assessment. Indicates the applicant has a formal financial default recorded on their credit history within the last 6 years before application approved.
+  - `term_years` assumed to be recorded at time of application. Divisible by 5 so is most likely the 'overall term' of the mortgage. This is the total lifespan of the loan. It is the time horizon calculated to completely pay off the debt down to zero.
 
 - **Conditional candidates:**
   - `annual_income_gbp` investigate availability and interpretation.
-  - `property_value_gbp`
-  - `deposit_gbp`
-  - `requested_loan_gbp`
-  - `loan_to_value_pct`
-  - `monthly_debt_commitments_gbp`
-  - `debt_to_income_ratio`
-  - `credit_score`
-  - `employment_type`
-  - `employment_years`
-  - `savings_gbp`
-  - `missed_payments_24m` retained only if the relevant history predates assessment
-  - `credit_utilisation_pct`
-  - `previous_default_flag` retained only if the relevant history predates assessment
-  - `term_years`
+  - `employment_type` encoding and fairness concerns need consideration.
+  - `employment_years` needs careful consideration and definition before we can know if it is useful. Also contains a lot of missing values.
 
 - **Excluded from predictors:**
   - `application_id` excluded as it is an identifier.
@@ -188,8 +188,8 @@ Recorded DTI Checks:
 The recorded DTI most closely matches the tested simplified formula using a fixed
 5.5% rate, with zero differences above the chosen 0.01 tolerance. This is the
 closest tested hypothesis, not a confirmed definition of the recorded DTI or
-real-world ground truth. The result does not prove that `interest_rate_pct` was not
-available before the lending decision but it is wise to keep it seperate to avoid leakage.
+real-world ground truth. The result does not prove that `interest_rate_pct` was
+available before the lending decision, so it remains separate to avoid leakage.
 
 ### Are highly related variables providing useful information, or simply repeating each other?
 

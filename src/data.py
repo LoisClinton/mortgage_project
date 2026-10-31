@@ -117,6 +117,42 @@ def domain_validation_summary(df):
 
     return pd.DataFrame(findings)
 
+# Check the relationship between missed_payments_24m and the target.
+def missed_payment_vs_target(df):
+    future_difficulty_without_missed_payments = df.loc[
+        (df["missed_payments_24m"] == 0)
+        & (df[TARGET] == 1),
+        ["application_id", "missed_payments_24m", TARGET],
+    ]
+
+    print(
+        "\nApplications with no missed payments in missed_payments_24m"
+        "but later recorded repayment difficulty:"
+    )
+    print(future_difficulty_without_missed_payments.to_string(index=False))
+    print("Count:", len(future_difficulty_without_missed_payments))
+    if len(future_difficulty_without_missed_payments) == 0:
+        print("No applications found with this pattern. Inconclusive regarding the timing of missed payments.")
+    else:
+        print("Applications found with this pattern. missed_payments_24m likely in a different time period than the target event.")
+    return 
+
+# Summarize missingness for credit-related fields.
+def credit_field_missingness_summary(df):
+    credit_score_missing = df["credit_score"].isna()
+    utilisation_missing = df["credit_utilisation_pct"].isna()
+
+    return {
+        "both_missing": int((credit_score_missing & utilisation_missing).sum()),
+        "credit_score_missing_utilisation_present": int(
+            (credit_score_missing & ~utilisation_missing).sum()
+        ),
+        "utilisation_missing_credit_score_present": int(
+            (~credit_score_missing & utilisation_missing).sum()
+        ),
+        "both_present": int((~credit_score_missing & ~utilisation_missing).sum()),
+    }
+
 def print_audit(df):
     # Create a copy of the DataFrame to perform checks without modifying the original.
     checks = df.copy()
@@ -266,6 +302,17 @@ def print_audit(df):
         ascending=False
     )
 
+    # Check correlations with the target variable
+    target_corr_checks = df.copy() # Different copy of df so that values in 'checks' arent evaluated in correlation analysis
+    target_correlations = (
+        target_corr_checks.select_dtypes(include="number")
+            .corr()[TARGET]
+            .drop(TARGET)
+            .sort_values(key=lambda values: values.abs(), ascending=False)
+    )
+
+
+
     iqr_checks = df.copy() # Different copy of df for IQR outlier analysis
     iqr_summary = iqr_outlier_summary(iqr_checks) 
 
@@ -273,6 +320,8 @@ def print_audit(df):
     domain_checks = df.copy() # Different copy of df for domain validation
     validation_summary = domain_validation_summary(domain_checks)
 
+    # Perform missed payment analysis against the target variable
+    missed_checks = df.copy()
 
     # Print the audit.
     print('\n ------------ START OF AUDIT ------------')
@@ -347,6 +396,29 @@ def print_audit(df):
 
     if validation_summary["invalid_count"].sum() == 0:
         print("No domain-invalid values found.")
+    print("\nMISSED PAYMENTS / FUTURE OUTCOME CHECK:")
+    missed_payment_vs_target(missed_checks)
+    credit_checks = df.copy()
+    credit_missingness = credit_field_missingness_summary(credit_checks)
+    print("\nCREDIT FIELD MISSINGNESS OVERLAP:")
+    print(
+        "- Both credit_score and credit_utilisation_pct missing: "
+        f"{credit_missingness['both_missing']}"
+    )
+    print(
+        "- credit_score missing, utilisation present: "
+        f"{credit_missingness['credit_score_missing_utilisation_present']}"
+    )
+    print(
+        "- utilisation missing, credit_score present: "
+        f"{credit_missingness['utilisation_missing_credit_score_present']}"
+    )
+    print(
+        "- Both credit_score and credit_utilisation_pct present: "
+        f"{credit_missingness['both_present']}"
+    )
+    print("\nNumeric feature correlations with target:")
+    print(target_correlations)
     print('\n ------------ END OF AUDIT ------------')
 
 
