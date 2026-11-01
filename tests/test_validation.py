@@ -1,5 +1,6 @@
 """Tests for validation helpers and provisional advisory rules."""
 import unittest
+import pandas as pd
 from src.decisions import (
     HIGHER_REVIEW_THRESHOLD,
     LOWER_REVIEW_THRESHOLD,
@@ -7,6 +8,7 @@ from src.decisions import (
     validate_application_fields,
     validate_score,
 )
+from src.model import split_data_three_way
 
 
 VALID_APPLICATION = {
@@ -73,6 +75,33 @@ class AdvisoryDecisionTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, 'debt_to_income_ratio'):
             advisory_decision(0.4, application)
+
+
+class ModelSplitTests(unittest.TestCase):
+    def test_three_way_split_is_disjoint_and_has_expected_sizes(self):
+        frame = pd.DataFrame({
+            'credit_score': range(600, 700),
+            'debt_to_income_ratio': [0.2 + (index % 10) / 100 for index in range(100)],
+            'repayment_difficulty_12m': [index % 2 for index in range(100)],
+        })
+
+        X_train, X_validation, X_final_test, y_train, y_validation, y_final_test = (
+            split_data_three_way(frame)
+        )
+
+        self.assertEqual(len(X_train), 64)
+        self.assertEqual(len(X_validation), 16)
+        self.assertEqual(len(X_final_test), 20)
+        self.assertEqual(len(y_train), 64)
+        self.assertEqual(len(y_validation), 16)
+        self.assertEqual(len(y_final_test), 20)
+        self.assertFalse(set(X_train.index) & set(X_validation.index))
+        self.assertFalse(set(X_train.index) & set(X_final_test.index))
+        self.assertFalse(set(X_validation.index) & set(X_final_test.index))
+        self.assertEqual(
+            set(X_train.index) | set(X_validation.index) | set(X_final_test.index),
+            set(frame.index),
+        )
 
 
 if __name__ == '__main__':

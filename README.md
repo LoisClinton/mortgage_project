@@ -42,7 +42,7 @@ After a commit, review the new log row and commit that generated log update **_w
 ### What is working?
 
 - Data audit (`src/data.py`)
-- A basic two-feature Logistic Regression pipeline with training-only imputation/scaling, a majority-class reference and initial held-out evaluation (`src/model.py`, `src/main.py`)
+- A basic two-feature Logistic Regression pipeline with training-only imputation/scaling, a majority-class reference, and reproducible 64% training, 16% validation and 20% final-test evaluation (`src/model.py`, `src/main.py`)
 - Saved model and sample applicant **scoring** (not decision-making) (`src/applicant_example.py`)
 - Four generic validation tests (`tests/test_validation.py`)
 

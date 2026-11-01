@@ -103,7 +103,7 @@ The screening therefore informs review rather than automatic deletion or replace
 **Action Points:**
 
 - Record the baseline.
-- Create three-way split for Training(64%), Validation(16%) and Final test(20%).
+- Implemented a reproducible three-way split for Training (64%), Validation (16%) and Final test (20%). The baseline is fitted on the training records, used for model/threshold investigations on validation records, and reported once on the final-test records.
 - Choose one justified model improvement.
 - Compare the models fairly.
 
@@ -274,34 +274,41 @@ Features:
 credit_score
 debt_to_income_ratio
 
-Current split:
-80% training
-20% test
+Algorithm:
+Logistic Regression
+
+Data:
+64% training
+16% validation
+20% final test
+
+Current threshold:
+0.50, via model.predict()
 ```
 
 **Its results are:**
 
 | Measure               | Result |
 | --------------------- | -----: |
-| Accuracy              |  0.750 |
-| Precision for class 1 |  0.353 |
-| Recall for class 1    |  0.171 |
-| F1 for class 1        |  0.231 |
-| ROC AUC               |  0.691 |
+| Accuracy              |  0.805 |
+| Precision for class 1 |  0.667 |
+| Recall for class 1    |  0.214 |
+| F1 for class 1        |  0.324 |
+| ROC AUC               |  0.731 |
 
 **The confusion matrix:**
 
 ```text
-[[114  11]
- [ 29   6]]
+[[97  3]
+ [ 22   6]]
 ```
 
-- 114 class-0 applications were correctly identified.
-- 11 class-0 applications were incorrectly flagged.
-- 29 class-1 applications were missed.
+- 97 class-0 applications were correctly identified.
+- 3 class-0 applications were incorrectly flagged.
+- 22 class-1 applications were missed.
 - 6 class-1 applications were correctly identified.
 
-The baseline identifies only **6 of 35** repayment-difficulty cases, giving recall of approximately **17.1%** (important limitation to address).
+The baseline identifies only **6 of 28** repayment-difficulty cases, giving recall of approximately **21.4%** (important limitation to address).
 
 ### Majority-class comparison
 
@@ -314,13 +321,13 @@ accuracy: 0.781
 but it predicts class `0` for every case:
 
 ```text
-[[125   0]
- [ 35   0]]
+[[100   0]
+ [ 28   0]]
 ```
 
 Therefore:
 
-- It detects **none** of the 35 class-1 cases.
+- It detects **none** of the 28 class-1 cases.
 - Its class-1 recall, precision, and F1 are all `0.000`.
 - Its accuracy is misleading because class `0` is the majority outcome.
 
@@ -329,8 +336,9 @@ Therefore:
 The sample applicant receives:
 
 ```text
-Repayment-difficulty class-1 score: 0.204
+Repayment-difficulty class-1 score: 0.205
 Advisory outcome: STANDARD REVIEW
+Reason: The model score is in the lower review band.
 Status: HUMAN REVIEW REQUIRED
 ```
 
@@ -357,10 +365,11 @@ Status: HUMAN REVIEW REQUIRED
 
 ### Table:
 
-| Model    | Features                   | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
-| -------- | -------------------------- | -------- | --------- | ------ | ----- | ------- | ----------------- |
-| Baseline | credit score + DTI         | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
-| Extended | baseline + missed payments |          |           |        |       |         |                   |
-|          |                            |          |           |        |       |         |                   |
-|          |                            |          |           |        |       |         |                   |
-|          |                            |          |           |        |       |         |                   |
+| Model                          | Features                       | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
+| ------------------------------ | ------------------------------ | -------- | --------- | ------ | ----- | ------- | ----------------- |
+| Baseline (not three-way split) | credit score + DTI             | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
+| Baseline (three-way split)     | credit score + DTI             | 0.805    | 0.667     | 0.214  | 0.324 | 0.731   | —                 |
+| Extended ver 1                 | Baseline + missed_payments_24m |          |           |        |       |         |                   |
+|                                |                                |          |           |        |       |         |                   |
+|                                |                                |          |           |        |       |         |                   |
+|                                |                                |          |           |        |       |         |                   |
