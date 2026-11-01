@@ -1,5 +1,6 @@
 """Tests for validation helpers and provisional advisory rules."""
 import unittest
+from pathlib import Path
 import pandas as pd
 from src.decisions import (
     HIGHER_REVIEW_THRESHOLD,
@@ -8,7 +9,12 @@ from src.decisions import (
     validate_application_fields,
     validate_score,
 )
-from src.model import split_data_three_way
+from src.model import (
+    BASELINE_FEATURES,
+    EXTENDED_FEATURES,
+    run_model,
+    split_data_three_way,
+)
 
 
 VALID_APPLICATION = {
@@ -102,6 +108,47 @@ class ModelSplitTests(unittest.TestCase):
             set(X_train.index) | set(X_validation.index) | set(X_final_test.index),
             set(frame.index),
         )
+
+    def test_extended_feature_set_adds_missed_payments(self):
+        self.assertEqual(
+            EXTENDED_FEATURES,
+            BASELINE_FEATURES + ['missed_payments_24m'],
+        )
+
+    def test_reusable_model_runner_returns_all_evaluation_partitions(self):
+        frame = pd.DataFrame({
+            'credit_score': range(600, 700),
+            'debt_to_income_ratio': [0.2 + (index % 10) / 100 for index in range(100)],
+            'missed_payments_24m': [index % 3 for index in range(100)],
+            'repayment_difficulty_12m': [index % 2 for index in range(100)],
+        })
+
+        results = run_model(frame, EXTENDED_FEATURES)
+
+        self.assertEqual(results['features'], EXTENDED_FEATURES)
+        self.assertIn('validation', results)
+        self.assertIn('final', results)
+        self.assertIn('confusion_matrix', results['validation'])
+
+    def test_comparison_without_model_file_does_not_overwrite_saved_model(self):
+        frame = pd.DataFrame({
+            'credit_score': range(600, 700),
+            'debt_to_income_ratio': [0.2 + (index % 10) / 100 for index in range(100)],
+            'missed_payments_24m': [index % 3 for index in range(100)],
+            'repayment_difficulty_12m': [index % 2 for index in range(100)],
+        })
+        model_file = Path('/tmp/mortgage-baseline-test.joblib')
+
+        run_model(frame, BASELINE_FEATURES, model_file)
+        run_model(frame, EXTENDED_FEATURES)
+
+        import joblib
+        saved_model = joblib.load(model_file)
+        self.assertEqual(
+            list(saved_model.feature_names_in_),
+            BASELINE_FEATURES,
+        )
+        model_file.unlink()
 
 
 if __name__ == '__main__':
