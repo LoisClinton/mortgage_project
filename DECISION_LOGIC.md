@@ -102,7 +102,10 @@ The screening therefore informs review rather than automatic deletion or replace
 
 **Action Points:**
 
-- Check the versions of rate, term, property value and LTV. They can exist before assessment but may have been overwritten after a decision.
+- Record the baseline.
+- Create three-way split for Training(64%), Validation(16%) and Final test(20%).
+- Choose one justified model improvement.
+- Compare the models fairly.
 
 ### Does an identifier or outcome leak the answer into the inputs?
 
@@ -261,3 +264,103 @@ Potential proxy concerns include:
 - Employment history, which could disadvantage applicants with career breaks or less traditional work patterns.
 
 The dataset does not contain protected-characteristic information, timestamps, or detailed data provenance. Therefore, fairness cannot be established from the available data. However, the absence of protected attributes does not prove that the model is fair.
+
+## Before improvement baseline model
+
+The baseline model uses:
+
+```text
+Features:
+credit_score
+debt_to_income_ratio
+
+Current split:
+80% training
+20% test
+```
+
+**Its results are:**
+
+| Measure               | Result |
+| --------------------- | -----: |
+| Accuracy              |  0.750 |
+| Precision for class 1 |  0.353 |
+| Recall for class 1    |  0.171 |
+| F1 for class 1        |  0.231 |
+| ROC AUC               |  0.691 |
+
+**The confusion matrix:**
+
+```text
+[[114  11]
+ [ 29   6]]
+```
+
+- 114 class-0 applications were correctly identified.
+- 11 class-0 applications were incorrectly flagged.
+- 29 class-1 applications were missed.
+- 6 class-1 applications were correctly identified.
+
+The baseline identifies only **6 of 35** repayment-difficulty cases, giving recall of approximately **17.1%** (important limitation to address).
+
+### Majority-class comparison
+
+**The majority-class reference achieves higher accuracy:**
+
+```text
+accuracy: 0.781
+```
+
+but it predicts class `0` for every case:
+
+```text
+[[125   0]
+ [ 35   0]]
+```
+
+Therefore:
+
+- It detects **none** of the 35 class-1 cases.
+- Its class-1 recall, precision, and F1 are all `0.000`.
+- Its accuracy is misleading because class `0` is the majority outcome.
+
+### Baseline with the sample applicant
+
+The sample applicant receives:
+
+```text
+Repayment-difficulty class-1 score: 0.204
+Advisory outcome: STANDARD REVIEW
+Status: HUMAN REVIEW REQUIRED
+```
+
+## Model comparison
+
+### Legend:
+
+- **Model:**
+  Which ML model or configuration is being evaluated.
+- **Features:**
+  The input variables used to make predictions.
+- **Accuracy:**
+  Percentage of all predictions that are correct. How often the model correctly predicts either repayment difficulty or no difficulty.
+- **Precision:**
+  Of the applicants flagged as likely to experience difficulty, how many actually did? Measures how trustworthy the positive alerts are.
+- **Recall:**
+  Of the applicants who actually experienced difficulty, how many did the model identify? Measures how many genuine difficulty cases the model catches.
+- **F1:**
+  Harmonic mean of precision and recall. Summarises the trade-off between detecting difficult cases and avoiding false alerts.
+- **ROC-AUC:**
+  Measures how effectively the model ranks applicants with difficulty above those without, across classification thresholds. Shows how well the model distinguishes the two groups.
+- **Average precision:**
+  Summarises precision across different levels of recall as the classification threshold changes. Shows how effectively the model prioritises genuine difficulty cases across thresholds.
+
+### Table:
+
+| Model    | Features                   | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
+| -------- | -------------------------- | -------- | --------- | ------ | ----- | ------- | ----------------- |
+| Baseline | credit score + DTI         | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
+| Extended | baseline + missed payments |          |           |        |       |         |                   |
+|          |                            |          |           |        |       |         |                   |
+|          |                            |          |           |        |       |         |                   |
+|          |                            |          |           |        |       |         |                   |
