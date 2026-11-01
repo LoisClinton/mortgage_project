@@ -369,7 +369,11 @@ Status: HUMAN REVIEW REQUIRED
 | ------------------------------ | ------------------------------ | -------- | --------- | ------ | ----- | ------- | ----------------- |
 | Baseline (not three-way split) | credit score + DTI             | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
 | Baseline (three-way split)     | credit score + DTI             | 0.805    | 0.667     | 0.214  | 0.324 | 0.731   | —                 |
-| Extended ver 1                 | Baseline + missed_payments_24m |          |           |        |       |         |                   |
+| Extended ver 1                 | Baseline + missed_payments_24m | 0.805    | 0.667     | 0.214  | 0.324 | 0.750   | —                 |
 |                                |                                |          |           |        |       |         |                   |
 |                                |                                |          |           |        |       |         |                   |
 |                                |                                |          |           |        |       |         |                   |
+
+## Extended ver 1
+
+The extended ver 1 model adds only `missed_payments_24m`, selected because the audit found an association with the target and it is a plausible historical credit feature. Its timing isn't proven, so this remains an experiment rather than a confirmed final predictor.

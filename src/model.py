@@ -1,4 +1,4 @@
-"""Build and evaluate the two-feature mortgage baseline."""
+"""Build and evaluate comparable mortgage feature-set experiments."""
 from pathlib import Path
 import joblib
 from sklearn.dummy import DummyClassifier
@@ -14,6 +14,7 @@ from sklearn.preprocessing import StandardScaler
 from src.data import TARGET
 
 BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio',]
+EXTENDED_FEATURES = BASELINE_FEATURES + ['missed_payments_24m']
 
 MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'baseline_model.joblib'
 
@@ -50,13 +51,13 @@ def evaluate(model, X_test, y_test):
         'confusion_matrix': confusion_matrix(y_test, predicted, labels=[0, 1]), # rows are actual classes [0, 1] columns are predicted classes [0, 1].
     }
 
-def split_data_three_way(df):
+def split_data_three_way(df, features=BASELINE_FEATURES):
     """Create reproducible 64% training, 16% validation and 20% test sets."""
     # fail if configured proportions are changed incorrectly.
     if not abs(TRAIN_SIZE + VALIDATION_SIZE + FINAL_TEST_SIZE - 1.0) < 1e-12:
         raise ValueError('Split proportions must sum to 1.0')
 
-    X = df[BASELINE_FEATURES].copy() # contains only permitted model inputs.
+    X = df[features].copy() # contains only the requested model inputs.
     y = df[TARGET] # contains the future outcome the model is trying to predict.
 
     # reserve the final test set.
@@ -92,8 +93,12 @@ def split_data_three_way(df):
     )
 
 
-def run_baseline(df):
-    """Fit the baseline on training data and evaluate held-out partitions."""
+def run_model(df, features, model_file=None):
+    """Fit one feature set and evaluate it on validation and final-test data.
+
+    The same split proportions and random state are used for every feature set,
+    allowing a controlled comparison between the baseline and an extension.
+    """
     # for 800 records these partitions contain 512, 128 and 160 rows.
     (
         X_train,
@@ -102,14 +107,14 @@ def run_baseline(df):
         y_train,
         y_validation,
         y_final_test,
-    ) = split_data_three_way(df)
+    ) = split_data_three_way(df, features)
 
     # reference always predicts the most common class.
     reference = DummyClassifier(strategy='most_frequent')
     reference.fit(X_train, y_train)
 
     # build and fit the complete imputation -> scaling -> logistic regression workflow using training records only.
-    pipeline = build_pipeline() 
+    pipeline = build_pipeline()
     pipeline.fit(X_train, y_train)
 
     
@@ -124,4 +129,21 @@ def run_baseline(df):
     final_reference_results = evaluate(reference, X_final_test, y_final_test) # Dummy classifier
     final_results = evaluate(pipeline, X_final_test, y_final_test) # Logistic regression pipeline
 
-    return final_reference_results, validation_reference_results, validation_results, final_results
+    return {
+        'features': features,
+        'validation_reference': validation_reference_results,
+        'validation': validation_results,
+        'final_reference': final_reference_results,
+        'final': final_results,
+    }
+
+
+def run_baseline(df):
+    """Run the baseline experiment and save its fitted pipeline."""
+    results = run_model(df, BASELINE_FEATURES, MODEL_FILE)
+    return (
+        results['final_reference'],
+        results['validation_reference'],
+        results['validation'],
+        results['final'],
+    )

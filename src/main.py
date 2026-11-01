@@ -1,12 +1,12 @@
-"""Run the supplied baseline only; assessed advisory rules are NOT provided."""
 from src.data import load_data, print_audit
 from src.model import (
     BASELINE_FEATURES,
+    EXTENDED_FEATURES,
     FINAL_TEST_SIZE,
     MODEL_FILE,
     TRAIN_SIZE,
     VALIDATION_SIZE,
-    run_baseline,
+    run_model,
 )
 
 # print evaluation metrics and confusion matrix for model run.
@@ -22,8 +22,10 @@ def main():
     df = load_data() 
     print_audit(df) # print dataset audit
 
-    final_reference_results, validation_reference_results, validation_results, final_results = run_baseline(df)
+    baseline_results = run_model(df, BASELINE_FEATURES, MODEL_FILE)
+    extended_results = run_model(df, EXTENDED_FEATURES)
     print('\nSelected baseline features:', BASELINE_FEATURES)
+    print('Extended features:', EXTENDED_FEATURES)
     print(
         '\nThree-way split: '
         f'training={TRAIN_SIZE:.0%}, '
@@ -31,10 +33,11 @@ def main():
         f'final test={FINAL_TEST_SIZE:.0%}'
     )
     
-    report('\n## Majority-class reference on validation:', validation_reference_results)
-    report('\n## Two-feature baseline on validation:', validation_results)
-    # report('\n## Majority-class reference on final test:', final_reference_results)
-    # report('\n# Two-feature baseline on final test:', final_results)
+    report('\n## Majority-class reference on validation:', baseline_results['validation_reference'])
+    report('\n## Two-feature baseline on validation:', baseline_results['validation'])
+    report('\n## Extended model on validation:', extended_results['validation'])
+    # report('\n## Two-feature baseline on final test:', baseline_results['final'])
+    # report('\n## Extended model on final test:', extended_results['final'])
     print(f'\n ~~ Trained baseline saved: ~~\n {MODEL_FILE}')
 
 
