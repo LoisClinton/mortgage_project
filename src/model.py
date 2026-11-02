@@ -6,7 +6,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score, confusion_matrix, precision_score, recall_score,
-    f1_score, roc_auc_score,
+    average_precision_score, f1_score, roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
@@ -48,6 +48,7 @@ def evaluate(model, X_test, y_test):
         'recall_1': recall_score(y_test, predicted, zero_division=0), # proportion of actual class-1 that are found.
         'f1_1': f1_score(y_test, predicted, zero_division=0), # combines precision and recall into one measure.
         'roc_auc': roc_auc_score(y_test, scores), # assesses ranking across possible thresholds rather than only the default threshold used by predict().
+        'average_precision': average_precision_score(y_test, scores), # summarises precision across possible recall levels.
         'confusion_matrix': confusion_matrix(y_test, predicted, labels=[0, 1]), # rows are actual classes [0, 1] columns are predicted classes [0, 1].
     }
 

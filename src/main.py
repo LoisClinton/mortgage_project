@@ -12,7 +12,14 @@ from src.model import (
 # print evaluation metrics and confusion matrix for model run.
 def report(name, result):
     print(f'\n{name}')
-    for metric in ('accuracy', 'precision_1', 'recall_1', 'f1_1', 'roc_auc'):
+    for metric in (
+        'accuracy',
+        'precision_1',
+        'recall_1',
+        'f1_1',
+        'roc_auc',
+        'average_precision',
+    ):
         print(f'{metric}: {result[metric]:.3f}')
     print('Confusion matrix \n[actual rows 0,1; predicted columns 0,1]:')
     print(result['confusion_matrix'])

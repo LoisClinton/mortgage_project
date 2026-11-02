@@ -129,6 +129,7 @@ class ModelSplitTests(unittest.TestCase):
         self.assertIn('validation', results)
         self.assertIn('final', results)
         self.assertIn('confusion_matrix', results['validation'])
+        self.assertIn('average_precision', results['validation'])
 
     def test_comparison_without_model_file_does_not_overwrite_saved_model(self):
         frame = pd.DataFrame({

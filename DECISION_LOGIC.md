@@ -368,8 +368,8 @@ Status: HUMAN REVIEW REQUIRED
 | Model                          | Features                       | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
 | ------------------------------ | ------------------------------ | -------- | --------- | ------ | ----- | ------- | ----------------- |
 | Baseline (not three-way split) | credit score + DTI             | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
-| Baseline (three-way split)     | credit score + DTI             | 0.805    | 0.667     | 0.214  | 0.324 | 0.731   | —                 |
-| Extended ver 1                 | Baseline + missed_payments_24m | 0.805    | 0.667     | 0.214  | 0.324 | 0.750   | —                 |
+| Baseline (three-way split)     | credit score + DTI             | 0.805    | 0.667     | 0.214  | 0.324 | 0.731   | 0.486             |
+| Extended ver 1                 | Baseline + missed_payments_24m | 0.805    | 0.667     | 0.214  | 0.324 | 0.750   | 0.530             |
 |                                |                                |          |           |        |       |         |                   |
 |                                |                                |          |           |        |       |         |                   |
 |                                |                                |          |           |        |       |         |                   |
