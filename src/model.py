@@ -118,8 +118,9 @@ def run_model(df, features, model_file=None):
     pipeline.fit(X_train, y_train)
 
     
-    MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(pipeline, MODEL_FILE) # save the fitted pipeline so applicant_example.py can use the same preprocessing and model.
+    if model_file is not None:
+        model_file.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(pipeline, model_file)
 
     # validation results
     validation_reference_results = evaluate(reference, X_validation, y_validation) # Dummy classifier
