@@ -43,6 +43,7 @@ After a commit, review the new log row and commit that generated log update **_w
 
 - Data audit (`src/data.py`)
 - A reusable Logistic Regression experiment with training-only imputation/scaling, a majority-class reference, and reproducible 64% training, 16% validation and 20% final-test evaluation. It compares the two-feature baseline with justified extensions (`src/model.py`, `src/main.py`)
+- Validation threshold analysis with a saved precision/recall graph (`src/threshold_analysis.py`, `reports/figures/threshold_precision_recall.png`)
 - Saved model and sample applicant **scoring** (not decision-making) (`src/applicant_example.py`)
 - Four generic validation tests (`tests/test_validation.py`)
 
