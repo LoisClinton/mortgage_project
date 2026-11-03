@@ -1,9 +1,11 @@
 from src.data import load_data, print_audit
 from src.model import (
     BASELINE_FEATURES,
-    EXTENDED_FEATURES,
+    EXTENDED_FEATURES_VER_1,
     FINAL_TEST_SIZE,
     MODEL_FILE,
+    SELECTED_FEATURES,
+    SELECTED_THRESHOLD,
     TRAIN_SIZE,
     VALIDATION_SIZE,
     run_model,
@@ -29,10 +31,13 @@ def main():
     df = load_data() 
     print_audit(df) # print dataset audit
 
-    baseline_results = run_model(df, BASELINE_FEATURES, MODEL_FILE)
-    extended_results = run_model(df, EXTENDED_FEATURES)
+    baseline_results = run_model(df, BASELINE_FEATURES)
+    extended_results = run_model(df, EXTENDED_FEATURES_VER_1)
+    selected_results = run_model(df, SELECTED_FEATURES, MODEL_FILE)
     print('\nSelected baseline features:', BASELINE_FEATURES)
-    print('Extended features:', EXTENDED_FEATURES)
+    print('Extended features:', EXTENDED_FEATURES_VER_1)
+    print('Selected features:', SELECTED_FEATURES)
+    print(f'Selected review threshold: {SELECTED_THRESHOLD:.2f}')
     print(
         '\nThree-way split: '
         f'training={TRAIN_SIZE:.0%}, '
@@ -45,7 +50,7 @@ def main():
     report('\n## Extended model on validation:', extended_results['validation'])
     # report('\n## Two-feature baseline on final test:', baseline_results['final'])
     # report('\n## Extended model on final test:', extended_results['final'])
-    print(f'\n ~~ Trained baseline saved: ~~\n {MODEL_FILE}')
+    print(f'\n ~~ Selected model saved: ~~\n {MODEL_FILE}')
 
 
 if __name__ == '__main__':

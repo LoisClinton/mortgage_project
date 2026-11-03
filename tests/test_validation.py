@@ -11,7 +11,7 @@ from src.decisions import (
 )
 from src.model import (
     BASELINE_FEATURES,
-    EXTENDED_FEATURES,
+    EXTENDED_FEATURES_VER_1,
     run_model,
     split_data_three_way,
 )
@@ -20,6 +20,8 @@ from src.model import (
 VALID_APPLICATION = {
     'credit_score': 680,
     'debt_to_income_ratio': 0.32,
+    'missed_payments_24m': 0,
+    'loan_to_value_pct': 80.0,
 }
 
 class GenericValidationTests(unittest.TestCase):
@@ -42,33 +44,31 @@ class AdvisoryDecisionTests(unittest.TestCase):
     def test_score_below_lower_threshold_gets_standard_review(self):
         decision = advisory_decision(LOWER_REVIEW_THRESHOLD - 0.01, VALID_APPLICATION)
 
-        self.assertEqual(decision['outcome'], 'STANDARD REVIEW')
-        self.assertEqual(decision['reason'], 'The model score is in the lower review band.')
+        self.assertEqual(decision['outcome'], 'STANDARD_REVIEW')
+        self.assertIn('No configured escalation condition', decision['reason'])
         self.assertEqual(decision['status'], 'HUMAN REVIEW REQUIRED')
 
     def test_lower_threshold_gets_middle_band(self):
         decision = advisory_decision(LOWER_REVIEW_THRESHOLD, VALID_APPLICATION)
 
-        self.assertEqual(decision['outcome'], 'STANDARD REVIEW')
-        self.assertEqual(decision['reason'], 'The model score is in the middle review band.')
+        self.assertEqual(decision['outcome'], 'STANDARD_REVIEW')
 
     def test_score_just_below_higher_threshold_gets_standard_review(self):
         decision = advisory_decision(HIGHER_REVIEW_THRESHOLD - 0.01, VALID_APPLICATION)
 
-        self.assertEqual(decision['outcome'], 'STANDARD REVIEW')
-        self.assertEqual(decision['reason'], 'The model score is in the middle review band.')
+        self.assertEqual(decision['outcome'], 'STANDARD_REVIEW')
 
     def test_higher_threshold_gets_enhanced_review(self):
         decision = advisory_decision(HIGHER_REVIEW_THRESHOLD, VALID_APPLICATION)
 
-        self.assertEqual(decision['outcome'], 'ENHANCED REVIEW')
-        self.assertEqual(decision['reason'], 'The model score is in the higher review band.')
+        self.assertEqual(decision['outcome'], 'ENHANCED_RISK_REVIEW')
+        self.assertIn('Model score meets selected risk-review threshold', decision['reason'])
         self.assertEqual(decision['status'], 'HUMAN REVIEW REQUIRED')
 
     def test_score_above_higher_threshold_gets_enhanced_review(self):
         decision = advisory_decision(HIGHER_REVIEW_THRESHOLD + 0.01, VALID_APPLICATION)
 
-        self.assertEqual(decision['outcome'], 'ENHANCED REVIEW')
+        self.assertEqual(decision['outcome'], 'ENHANCED_RISK_REVIEW')
 
     def test_invalid_score_is_rejected(self):
         for score in (-0.01, 1.01, float('nan'), '0.4'):
@@ -77,7 +77,11 @@ class AdvisoryDecisionTests(unittest.TestCase):
                     advisory_decision(score, VALID_APPLICATION)
 
     def test_missing_required_application_field_is_rejected(self):
-        application = {'credit_score': 680}
+        application = {
+            'credit_score': 680,
+            'missed_payments_24m': 0,
+            'loan_to_value_pct': 80.0,
+        }
 
         with self.assertRaisesRegex(ValueError, 'debt_to_income_ratio'):
             advisory_decision(0.4, application)
@@ -111,7 +115,7 @@ class ModelSplitTests(unittest.TestCase):
 
     def test_extended_feature_set_adds_missed_payments(self):
         self.assertEqual(
-            EXTENDED_FEATURES,
+            EXTENDED_FEATURES_VER_1,
             BASELINE_FEATURES + ['missed_payments_24m'],
         )
 
@@ -123,9 +127,9 @@ class ModelSplitTests(unittest.TestCase):
             'repayment_difficulty_12m': [index % 2 for index in range(100)],
         })
 
-        results = run_model(frame, EXTENDED_FEATURES)
+        results = run_model(frame, EXTENDED_FEATURES_VER_1)
 
-        self.assertEqual(results['features'], EXTENDED_FEATURES)
+        self.assertEqual(results['features'], EXTENDED_FEATURES_VER_1)
         self.assertIn('validation', results)
         self.assertIn('final', results)
         self.assertIn('confusion_matrix', results['validation'])
@@ -141,7 +145,7 @@ class ModelSplitTests(unittest.TestCase):
         model_file = Path('/tmp/mortgage-baseline-test.joblib')
 
         run_model(frame, BASELINE_FEATURES, model_file)
-        run_model(frame, EXTENDED_FEATURES)
+        run_model(frame, EXTENDED_FEATURES_VER_1)
 
         import joblib
         saved_model = joblib.load(model_file)

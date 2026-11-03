@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from src.data import load_data
 from src.model import (
     BASELINE_FEATURES,
-    EXTENDED_FEATURES,
+    EXTENDED_FEATURES_VER_1,
     build_pipeline,
     split_data_three_way,
     threshold_analysis,
@@ -53,7 +53,7 @@ def main():
 
     for label, features in (
         ("Two-feature baseline", BASELINE_FEATURES),
-        ("Three-feature Extended ver 1", EXTENDED_FEATURES),
+        ("Three-feature Extended ver 1", EXTENDED_FEATURES_VER_1),
     ):
         (
             X_train,

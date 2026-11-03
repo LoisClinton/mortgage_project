@@ -379,15 +379,93 @@ Status: HUMAN REVIEW REQUIRED
 The extended ver 1 model adds only `missed_payments_24m`, selected because the audit found an association with the target and it is a plausible historical credit feature. Its timing isn't proven, so this remains an experiment rather than a confirmed final predictor.
 The additional feature appears to help the model rank applicants by repayment-difficulty risk in 12 months, but at the default 0.50 classification threshold it hasn't increased the number of actual difficulty cases detected. This is a useful finding that establishes that I should next investigate how the model's scores are translated into classifications.
 
-### Extended ver 1 vs Baseline Comparison Table:
+### Extended ver 1 Threshold Table:
 
-| Threshold | Precision | Recall | F1  | False positives | False negatives |
-| --------- | --------- | ------ | --- | --------------- | --------------- |
-| 0.15      |           |        |     |                 |                 |
-| 0.20      |           |        |     |                 |                 |
-| 0.25      |           |        |     |                 |                 |
-| 0.30      |           |        |     |                 |                 |
-| 0.40      |           |        |     |                 |                 |
-| 0.50      |           |        |     |                 |                 |
+| Threshold | Precision | Recall | F1    | False positives | False negatives |
+| --------- | --------- | ------ | ----- | --------------- | --------------- |
+| 0.15      | 0.324     | 0.821  | 0.465 | 48              | 5               |
+| 0.20      | 0.357     | 0.714  | 0.476 | 36              | 8               |
+| 0.25      | 0.391     | 0.643  | 0.486 | 28              | 10              |
+| 0.30      | 0.438     | 0.500  | 0.467 | 18              | 14              |
+| 0.35      | 0.500     | 0.429  | 0.462 | 12              | 16              |
+| 0.40      | 0.467     | 0.250  | 0.326 | 8               | 21              |
+| 0.50      | 0.667     | 0.214  | 0.324 | 3               | 22              |
 
 Because the system is intended to support human review rather than automatically approve or decline applications, recall is important: missing a genuine repayment-difficulty case may be more serious than referring an applicant for additional review. However, the threshold must also avoid an excessive number of false-positive referrals.
+
+### Validation-based selection decision
+
+#### `src/select_model.py` applies the following rules:
+
+1. Keep thresholds with recall of at least 0.60.
+2. Among those thresholds, select the highest threshold, reducing referrals while meeting the recall objective.
+3. Compare the baseline and extended candidates using validation average precision.
+4. If average precision is tied, prefer the simpler feature set.
+
+#### Using this rule:
+
+- The baseline selected threshold is `0.30`, with validation recall `0.607`.
+- The extended model selected threshold is `0.25`, with validation recall `0.643`.
+- The extended model is currently selected because its validation average precision is `0.530`, compared with `0.486` for the baseline.
+
+**The current selected applicant-scoring configuration is therefore:**
+
+- Features: `credit_score`, `debt_to_income_ratio`, `missed_payments_24m`
+- Review/classification threshold: `0.25`
+- Saved artefact: `models/selected_model.joblib`
+
+The applicant example uses this same feature list and threshold. `loan_to_value_pct`is used by the advisory affordability rule but is not an input to the selected model.
+
+## Advisory Decision Logic
+
+The current decision logic uses two thresholds but produces the same STANDARD REVIEW outcome for both the middle and lower bands. I should make the logical system more substantive, while keeping it appropriately simple.
+
+#### Current code:
+
+```python
+if score >= HIGHER_REVIEW_THRESHOLD:
+    outcome = "ENHANCED REVIEW"
+
+elif score >= LOWER_REVIEW_THRESHOLD:
+    outcome = "STANDARD REVIEW"
+
+else:
+    outcome = "STANDARD REVIEW"
+```
+
+### Idea
+
+Introduce distinct types of review based on the model score and independent mortgage information.
+
+| Rule | Condition                                           | Proposed action               |
+| ---- | --------------------------------------------------- | ----------------------------- |
+| R1   | DTI above 0.45                                      | Affordability review          |
+| R2   | LTV above 90%                                       | Affordability review          |
+| R3   | Model score at or above selected threshold          | Enhanced risk review          |
+| R4   | At least two recent missed payments                 | Enhanced risk review          |
+| R5   | A required affordability or credit field is missing | Information-completion review |
+| R6   | Two or more required fields are missing             | Enhanced information review   |
+| R7   | None of the above                                   | Standard review               |
+
+Not FCA rules or actual lender policy.
+
+#### Missing-value review rules
+
+The supplied dataset contains missing values in `credit_score`,
+`employment_years`, `savings_gbp` and `credit_utilisation_pct`. Missingness
+should not be silently treated as evidence of low or high risk, and an
+imputed value should not be presented to a reviewer as the applicant's
+confirmed value.
+
+The proposed missing-value rules are therefore:
+
+- **R5 — Information-completion review:** if a field needed for affordability
+  or credit assessment is missing, request or verify the relevant evidence
+  before relying on that field.
+- **R6 — Enhanced information review:** if two or more required fields are
+  missing, escalate the case for enhanced human review because the available
+  evidence is more limited.
+- Missing `application_id` is a data-integrity error, not a risk-review type.
+- Missing `repayment_difficulty_12m` is expected only when scoring a new
+  applicant; it is the historical training target and must never be requested
+  as an applicant input.

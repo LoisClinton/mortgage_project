@@ -14,10 +14,12 @@ from sklearn.preprocessing import StandardScaler
 from src.data import TARGET
 
 BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio',]
-EXTENDED_FEATURES = BASELINE_FEATURES + ['missed_payments_24m']
+EXTENDED_FEATURES_VER_1 = BASELINE_FEATURES + ['missed_payments_24m']
 THRESHOLDS_TO_TEST = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
+SELECTED_FEATURES = EXTENDED_FEATURES_VER_1
+SELECTED_THRESHOLD = 0.25
 
-MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'baseline_model.joblib'
+MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'selected_model.joblib'
 
 # three-way split: 64% training + 16% validation + 20% final test.
 TRAIN_SIZE = 0.64
@@ -162,8 +164,8 @@ def run_model(df, features, model_file=None):
         joblib.dump(pipeline, model_file)
 
     # validation results
-    validation_reference_results = evaluate(reference, X_validation, y_validation) # Dummy classifier
-    validation_results = evaluate(pipeline, X_validation, y_validation) # Logistic regression pipeline
+    validation_reference_results = evaluate(reference, X_validation, y_validation, SELECTED_THRESHOLD) # Dummy classifier
+    validation_results = evaluate(pipeline, X_validation, y_validation, SELECTED_THRESHOLD) # Logistic regression pipeline
 
     # final test is evaluated after model choices.
     final_reference_results = None
@@ -179,8 +181,8 @@ def run_model(df, features, model_file=None):
 
 
 def run_baseline(df):
-    """Run the baseline experiment and save its fitted pipeline."""
-    results = run_model(df, BASELINE_FEATURES, MODEL_FILE)
+    """Run the baseline experiment without overwriting the selected model."""
+    results = run_model(df, BASELINE_FEATURES)
     return (
         results['final_reference'],
         results['validation_reference'],

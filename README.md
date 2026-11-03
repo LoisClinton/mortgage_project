@@ -12,6 +12,8 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m src.data
 python -m src.main
+python -m src.threshold_analysis
+python -m src.select_model
 python -m src.applicant_example
 python -m unittest discover -s tests -v
 ```
@@ -23,6 +25,8 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m src.data
 .\.venv\Scripts\python.exe -m src.main
+.\.venv\Scripts\python.exe -m src.threshold_analysis
+.\.venv\Scripts\python.exe -m src.select_model
 .\.venv\Scripts\python.exe -m src.applicant_example
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
@@ -44,7 +48,8 @@ After a commit, review the new log row and commit that generated log update **_w
 - Data audit (`src/data.py`)
 - A reusable Logistic Regression experiment with training-only imputation/scaling, a majority-class reference, and reproducible 64% training, 16% validation and 20% final-test evaluation. It compares the two-feature baseline with justified extensions (`src/model.py`, `src/main.py`)
 - Validation threshold analysis with a saved precision/recall graph (`src/threshold_analysis.py`, `reports/figures/threshold_precision_recall.png`)
-- Saved model and sample applicant **scoring** (not decision-making) (`src/applicant_example.py`)
+- Validation-based model and threshold selection: requires recall of at least 0.60, then selects the highest eligible threshold and compares candidates using average precision (`src/select_model.py`)
+- Selected extended model and sample applicant **scoring** (not decision-making) (`src/applicant_example.py`)
 - Four generic validation tests (`tests/test_validation.py`)
 
 ### What is your independent assignment work?
