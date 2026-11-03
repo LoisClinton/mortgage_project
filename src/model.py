@@ -15,6 +15,7 @@ from src.data import TARGET
 
 BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio',]
 EXTENDED_FEATURES = BASELINE_FEATURES + ['missed_payments_24m']
+THRESHOLDS_TO_TEST = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
 
 MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'baseline_model.joblib'
 
@@ -35,13 +36,50 @@ def build_pipeline():
         LogisticRegression(max_iter=1000, random_state=RANDOM_STATE), # logistic regression learns the relationship between the features and the binary target (produces classes and class-1 scores).
     )
 
+# for each threshold, how many repayment-difficulty cases are correctly identified, how many are missed and how many false alerts are generated.
+def threshold_analysis(
+    model,
+    X_validation,
+    y_validation,
+    thresholds=THRESHOLDS_TO_TEST
+):
+    """Compare thresholds using validation data only."""
 
-def evaluate(model, X_test, y_test):
+    records = []
+
+    for threshold in thresholds:
+        if not 0 < threshold <= 1:
+            raise ValueError("Threshold must be > 0 and <= 1")
+
+        metrics = evaluate(
+            model,
+            X_validation,
+            y_validation,
+            threshold
+        )
+
+        tn, fp, fn, tp = metrics["confusion_matrix"].ravel()
+
+        records.append({
+            "threshold": float(threshold),
+            "recall": float(metrics["recall_1"]),
+            "precision": float(metrics["precision_1"]),
+            "f1": float(metrics["f1_1"]),
+            "accuracy": float(metrics["accuracy"]),
+            "tp": int(tp),
+            "fp": int(fp),
+            "fn": int(fn),
+            "tn": int(tn),
+        })
+
+    return records
+
+def evaluate(model, X_test, y_test, threshold=0.50):
     """Calculate classification metrics for data not used to fit ``model``."""
-    # convert scores into class labels using the model's default classification threshold.
-    predicted = model.predict(X_test)
     # return one column per class.
     scores = model.predict_proba(X_test)[:, 1]
+    # convert scores into class labels using the specified threshold.
+    predicted = (scores >= threshold).astype(int) 
     return {
         'accuracy': accuracy_score(y_test, predicted), # proportion of all predictions that are correct.
         'precision_1': precision_score(y_test, predicted, zero_division=0), # proportion of predicted class-1 that are correct.
@@ -128,8 +166,8 @@ def run_model(df, features, model_file=None):
     validation_results = evaluate(pipeline, X_validation, y_validation) # Logistic regression pipeline
 
     # final test is evaluated after model choices.
-    final_reference_results = evaluate(reference, X_final_test, y_final_test) # Dummy classifier
-    final_results = evaluate(pipeline, X_final_test, y_final_test) # Logistic regression pipeline
+    final_reference_results = None
+    final_results = None
 
     return {
         'features': features,

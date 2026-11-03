@@ -363,7 +363,7 @@ Status: HUMAN REVIEW REQUIRED
 - **Average precision:**
   Summarises precision across different levels of recall as the classification threshold changes. Shows how effectively the model prioritises genuine difficulty cases across thresholds.
 
-### Table:
+### Model Comparison Table:
 
 | Model                          | Features                       | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
 | ------------------------------ | ------------------------------ | -------- | --------- | ------ | ----- | ------- | ----------------- |
@@ -377,3 +377,17 @@ Status: HUMAN REVIEW REQUIRED
 ## Extended ver 1
 
 The extended ver 1 model adds only `missed_payments_24m`, selected because the audit found an association with the target and it is a plausible historical credit feature. Its timing isn't proven, so this remains an experiment rather than a confirmed final predictor.
+The additional feature appears to help the model rank applicants by repayment-difficulty risk in 12 months, but at the default 0.50 classification threshold it hasn't increased the number of actual difficulty cases detected. This is a useful finding that establishes that I should next investigate how the model's scores are translated into classifications.
+
+### Extended ver 1 vs Baseline Comparison Table:
+
+| Threshold | Precision | Recall | F1  | False positives | False negatives |
+| --------- | --------- | ------ | --- | --------------- | --------------- |
+| 0.15      |           |        |     |                 |                 |
+| 0.20      |           |        |     |                 |                 |
+| 0.25      |           |        |     |                 |                 |
+| 0.30      |           |        |     |                 |                 |
+| 0.40      |           |        |     |                 |                 |
+| 0.50      |           |        |     |                 |                 |
+
+Because the system is intended to support human review rather than automatically approve or decline applications, recall is important: missing a genuine repayment-difficulty case may be more serious than referring an applicant for additional review. However, the threshold must also avoid an excessive number of false-positive referrals.
