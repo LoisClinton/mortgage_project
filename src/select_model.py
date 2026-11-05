@@ -1,4 +1,12 @@
-from src.model import EXTENDED_FEATURES_VER_1, BASELINE_FEATURES, split_data_three_way, build_pipeline, evaluate, threshold_analysis
+from src.model import (
+    EXTENDED_FEATURES_VER_1,
+    EXTENDED_FEATURES_VER_2,
+    BASELINE_FEATURES,
+    split_data_three_way,
+    build_pipeline,
+    evaluate,
+    threshold_analysis,
+)
 import pandas as pd
 
 MIN_VALIDATION_RECALL = 0.60
@@ -8,7 +16,11 @@ def select_configuration(df):
 
     candidates = []
 
-    for features in (BASELINE_FEATURES, EXTENDED_FEATURES_VER_1):
+    for features in (
+        BASELINE_FEATURES,
+        EXTENDED_FEATURES_VER_1,
+        EXTENDED_FEATURES_VER_2,
+    ):
         (
             X_train,
             X_validation,

@@ -2,6 +2,7 @@ from src.data import load_data, print_audit
 from src.model import (
     BASELINE_FEATURES,
     EXTENDED_FEATURES_VER_1,
+    EXTENDED_FEATURES_VER_2,
     FINAL_TEST_SIZE,
     MODEL_FILE,
     SELECTED_FEATURES,
@@ -32,10 +33,12 @@ def main():
     print_audit(df) # print dataset audit
 
     baseline_results = run_model(df, BASELINE_FEATURES)
-    extended_results = run_model(df, EXTENDED_FEATURES_VER_1)
+    extended__ver_1_results = run_model(df, EXTENDED_FEATURES_VER_1)
+    extended_ver_2_results = run_model(df, EXTENDED_FEATURES_VER_2)
     selected_results = run_model(df, SELECTED_FEATURES, MODEL_FILE)
     print('\nSelected baseline features:', BASELINE_FEATURES)
-    print('Extended features:', EXTENDED_FEATURES_VER_1)
+    print('Extended ver 1 features:', EXTENDED_FEATURES_VER_1)
+    print('Extended ver 2 features:', EXTENDED_FEATURES_VER_2)
     print('Selected features:', SELECTED_FEATURES)
     print(f'Selected review threshold: {SELECTED_THRESHOLD:.2f}')
     print(
@@ -47,9 +50,9 @@ def main():
     
     report('\n## Majority-class reference on validation:', baseline_results['validation_reference'])
     report('\n## Two-feature baseline on validation:', baseline_results['validation'])
-    report('\n## Extended model on validation:', extended_results['validation'])
-    # report('\n## Two-feature baseline on final test:', baseline_results['final'])
-    # report('\n## Extended model on final test:', extended_results['final'])
+    report('\n## Extended ver 1 model on validation:', extended__ver_1_results['validation'])
+    report('\n## Extended ver 2 model on validation:', extended_ver_2_results['validation'])
+    report('\n## Selected model on final test:', selected_results['final'])
     print(f'\n ~~ Selected model saved: ~~\n {MODEL_FILE}')
 
 

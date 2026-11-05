@@ -8,6 +8,7 @@ EXAMPLE_APPLICATION = {
     "credit_score": 680,
     "debt_to_income_ratio": 0.32,
     "missed_payments_24m": 0,
+    "previous_default_flag": 0,
     "loan_to_value_pct": 80.0,
 }
 
@@ -33,6 +34,7 @@ def main():
     print(f"credit_score={EXAMPLE_APPLICATION['credit_score']}")
     print(f"debt_to_income_ratio={EXAMPLE_APPLICATION['debt_to_income_ratio']:.2f}")
     print(f"missed_payments_24m={EXAMPLE_APPLICATION['missed_payments_24m']}")
+    print(f"previous_default_flag={EXAMPLE_APPLICATION['previous_default_flag']}")
     print(f"loan_to_value_pct={EXAMPLE_APPLICATION['loan_to_value_pct']:.1f}")
     print(f"Repayment-difficulty class-1 score: {score:.3f}")
     print("\n______DECISION______")

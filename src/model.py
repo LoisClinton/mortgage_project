@@ -15,8 +15,9 @@ from src.data import TARGET
 
 BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio',]
 EXTENDED_FEATURES_VER_1 = BASELINE_FEATURES + ['missed_payments_24m']
+EXTENDED_FEATURES_VER_2 = EXTENDED_FEATURES_VER_1 + ['previous_default_flag']
 THRESHOLDS_TO_TEST = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
-SELECTED_FEATURES = EXTENDED_FEATURES_VER_1
+SELECTED_FEATURES = EXTENDED_FEATURES_VER_2
 SELECTED_THRESHOLD = 0.25
 
 MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'selected_model.joblib'

@@ -365,14 +365,13 @@ Status: HUMAN REVIEW REQUIRED
 
 ### Model Comparison Table:
 
-| Model                          | Features                       | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
-| ------------------------------ | ------------------------------ | -------- | --------- | ------ | ----- | ------- | ----------------- |
-| Baseline (not three-way split) | credit score + DTI             | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
-| Baseline (three-way split)     | credit score + DTI             | 0.805    | 0.667     | 0.214  | 0.324 | 0.731   | 0.486             |
-| Extended ver 1                 | Baseline + missed_payments_24m | 0.805    | 0.667     | 0.214  | 0.324 | 0.750   | 0.530             |
-|                                |                                |          |           |        |       |         |                   |
-|                                |                                |          |           |        |       |         |                   |
-|                                |                                |          |           |        |       |         |                   |
+| Model                          | Features                               | Accuracy | Precision | Recall | F1    | ROC-AUC | Average precision |
+| ------------------------------ | -------------------------------------- | -------- | --------- | ------ | ----- | ------- | ----------------- |
+| Baseline (not three-way split) | credit score + DTI                     | 0.750    | 0.353     | 0.171  | 0.231 | 0.691   | —                 |
+| Baseline (three-way split)     | credit score + DTI                     | 0.805    | 0.667     | 0.214  | 0.324 | 0.731   | 0.486             |
+| Extended ver 1                 | Baseline + missed_payments_24m         | 0.805    | 0.667     | 0.214  | 0.324 | 0.750   | 0.530             |
+| Extended ver 2                 | Extended ver 1 + previous_default_flag | 0.734    | 0.432     | 0.679  | 0.528 | 0.775   | 0.583             |
+|                                |                                        |          |           |        |       |         |                   |
 
 ## Extended ver 1
 
@@ -393,24 +392,42 @@ The additional feature appears to help the model rank applicants by repayment-di
 
 Because the system is intended to support human review rather than automatically approve or decline applications, recall is important: missing a genuine repayment-difficulty case may be more serious than referring an applicant for additional review. However, the threshold must also avoid an excessive number of false-positive referrals.
 
+## Extended ver 2: previous default flag
+
+The second extension adds `previous_default_flag` to the current three-feature model. This is a plausible historical credit feature because the field name indicates a prior default, but its exact reporting window and whether the record predates assessment must be confirmed.
+
+On the fixed validation partition, the feature increased ROC-AUC from `0.750` to `0.775` and average precision from `0.530` to `0.583`. At the `0.25` threshold, validation recall increased from `0.643` to `0.679`, precision from `0.391` to `0.432`, and F1 from `0.486` to `0.528`. The candidate therefore meets the existing recall objective and is provisionally selected for final-test evaluation. These results are validation evidence, not proof of real-world performance.
+
+### Extended ver 2 threshold table
+
+| Threshold | Precision | Recall | F1    | False positives | False negatives |
+| --------- | --------- | ------ | ----- | --------------- | --------------- |
+| 0.15      | 0.338     | 0.857  | 0.485 | 47              | 4               |
+| 0.20      | 0.368     | 0.750  | 0.494 | 36              | 7               |
+| 0.25      | 0.432     | 0.679  | 0.528 | 25              | 9               |
+| 0.30      | 0.441     | 0.536  | 0.484 | 19              | 13              |
+| 0.35      | 0.560     | 0.500  | 0.528 | 11              | 14              |
+| 0.40      | 0.625     | 0.357  | 0.455 | 6               | 18              |
+| 0.50      | 0.800     | 0.286  | 0.421 | 2               | 20              |
+
 ### Validation-based selection decision
 
 #### `src/select_model.py` applies the following rules:
 
 1. Keep thresholds with recall of at least 0.60.
 2. Among those thresholds, select the highest threshold, reducing referrals while meeting the recall objective.
-3. Compare the baseline and extended candidates using validation average precision.
+3. Compare the baseline and both extended candidates using validation average precision.
 4. If average precision is tied, prefer the simpler feature set.
 
 #### Using this rule:
 
 - The baseline selected threshold is `0.30`, with validation recall `0.607`.
 - The extended model selected threshold is `0.25`, with validation recall `0.643`.
-- The extended model is currently selected because its validation average precision is `0.530`, compared with `0.486` for the baseline.
+- Extended ver 2 is currently selected because its validation average precision is `0.583`, compared with `0.530` for extended ver 1 and `0.486` for the baseline.
 
 **The current selected applicant-scoring configuration is therefore:**
 
-- Features: `credit_score`, `debt_to_income_ratio`, `missed_payments_24m`
+- Features: `credit_score`, `debt_to_income_ratio`, `missed_payments_24m`, `previous_default_flag`
 - Review/classification threshold: `0.25`
 - Saved artefact: `models/selected_model.joblib`
 

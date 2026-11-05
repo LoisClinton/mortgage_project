@@ -12,6 +12,7 @@ from src.decisions import (
 from src.model import (
     BASELINE_FEATURES,
     EXTENDED_FEATURES_VER_1,
+    EXTENDED_FEATURES_VER_2,
     run_model,
     split_data_three_way,
 )
@@ -117,6 +118,12 @@ class ModelSplitTests(unittest.TestCase):
         self.assertEqual(
             EXTENDED_FEATURES_VER_1,
             BASELINE_FEATURES + ['missed_payments_24m'],
+        )
+
+    def test_extended_ver_2_adds_previous_default_flag(self):
+        self.assertEqual(
+            EXTENDED_FEATURES_VER_2,
+            EXTENDED_FEATURES_VER_1 + ['previous_default_flag'],
         )
 
     def test_reusable_model_runner_returns_all_evaluation_partitions(self):

@@ -8,6 +8,7 @@ from src.data import load_data
 from src.model import (
     BASELINE_FEATURES,
     EXTENDED_FEATURES_VER_1,
+    EXTENDED_FEATURES_VER_2,
     build_pipeline,
     split_data_three_way,
     threshold_analysis,
@@ -25,14 +26,17 @@ FIGURE_FILE = (
 def plot_threshold_metrics(results_by_model):
     """Save validation precision and recall against each tested threshold."""
     FIGURE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
 
     figure, axis = plt.subplots(figsize=(8, 5))
     for label, records in results_by_model.items():
+        i = list(results_by_model.keys()).index(label)
+        base_color = colors[i % len(colors)]
         thresholds = [item["threshold"] for item in records]
         precision = [item["precision"] for item in records]
         recall = [item["recall"] for item in records]
-        axis.plot(thresholds, precision, marker="o", label=f"{label} precision")
-        axis.plot(thresholds, recall, marker="s", linestyle="--", label=f"{label} recall")
+        axis.plot(thresholds, precision, marker="o", color=base_color, label=f"{label} precision")
+        axis.plot(thresholds, recall, marker="s", linestyle="--", color=base_color, alpha=0.7, label=f"{label} recall")
 
     axis.set(
         title="Validation precision and recall by threshold",
@@ -54,6 +58,7 @@ def main():
     for label, features in (
         ("Two-feature baseline", BASELINE_FEATURES),
         ("Three-feature Extended ver 1", EXTENDED_FEATURES_VER_1),
+        ("Four-feature Extended ver 2", EXTENDED_FEATURES_VER_2),
     ):
         (
             X_train,
