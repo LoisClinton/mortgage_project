@@ -52,7 +52,7 @@ def main():
     report('\n## Two-feature baseline on validation:', baseline_results['validation'])
     report('\n## Extended ver 1 model on validation:', extended__ver_1_results['validation'])
     report('\n## Extended ver 2 model on validation:', extended_ver_2_results['validation'])
-    report('\n## Selected model on final test:', selected_results['final'])
+    # report('\n## Selected model on final test:', selected_results['final'])
     print(f'\n ~~ Selected model saved: ~~\n {MODEL_FILE}')
 
 
