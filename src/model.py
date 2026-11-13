@@ -22,31 +22,31 @@ SELECTED_THRESHOLD = 0.25
 
 MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'selected_model.joblib'
 
-# three-way split: 64% training + 16% validation + 20% final test.
+# Three-way split: 64% training + 16% validation + 20% final test.
 TRAIN_SIZE = 0.64
 VALIDATION_SIZE = 0.16
 FINAL_TEST_SIZE = 0.20
 
-# fixed seed makes random partitions repeatable.
+# A fixed seed makes random partitions repeatable.
 RANDOM_STATE = 42
 
 
 def build_pipeline():
     """Create, but do not fit, the preprocessing and model pipeline."""
     return make_pipeline(
-        SimpleImputer(strategy='median'), # calculate each feature's median and use it to replace missing values.
+        SimpleImputer(strategy='median'), # Replace missing values with each feature's median.
         StandardScaler(),
-        LogisticRegression(max_iter=1000, random_state=RANDOM_STATE), # logistic regression learns the relationship between the features and the binary target (produces classes and class-1 scores).
+        LogisticRegression(max_iter=1000, random_state=RANDOM_STATE), # Learn the link between the features and the binary target (produces classes and class-1 scores).
     )
 
-# for each threshold, how many repayment-difficulty cases are correctly identified, how many are missed and how many false alerts are generated.
+
 def threshold_analysis(
     model,
     X_validation,
     y_validation,
     thresholds=THRESHOLDS_TO_TEST
 ):
-    """Compare thresholds using validation data only."""
+    """Count found cases, missed cases and false alerts per threshold on validation data."""
 
     records = []
 
@@ -78,31 +78,31 @@ def threshold_analysis(
     return records
 
 def evaluate(model, X_test, y_test, threshold=0.50):
-    """Calculate classification metrics for data not used to fit ``model``."""
-    # return one column per class.
+    """Calculate classification metrics for data not used to fit the model."""
+    # Return one column per class.
     scores = model.predict_proba(X_test)[:, 1]
-    # convert scores into class labels using the specified threshold.
-    predicted = (scores >= threshold).astype(int) 
+    # Convert scores into class labels using the specified threshold.
+    predicted = (scores >= threshold).astype(int)
     return {
-        'accuracy': accuracy_score(y_test, predicted), # proportion of all predictions that are correct.
-        'precision_1': precision_score(y_test, predicted, zero_division=0), # proportion of predicted class-1 that are correct.
-        'recall_1': recall_score(y_test, predicted, zero_division=0), # proportion of actual class-1 that are found.
-        'f1_1': f1_score(y_test, predicted, zero_division=0), # combines precision and recall into one measure.
-        'roc_auc': roc_auc_score(y_test, scores), # assesses ranking across possible thresholds rather than only the default threshold used by predict().
-        'average_precision': average_precision_score(y_test, scores), # summarises precision across possible recall levels.
-        'confusion_matrix': confusion_matrix(y_test, predicted, labels=[0, 1]), # rows are actual classes [0, 1] columns are predicted classes [0, 1].
+        'accuracy': accuracy_score(y_test, predicted), # Proportion of all predictions that are correct.
+        'precision_1': precision_score(y_test, predicted, zero_division=0), # Proportion of predicted class-1 that are correct.
+        'recall_1': recall_score(y_test, predicted, zero_division=0), # Proportion of actual class-1 that are found.
+        'f1_1': f1_score(y_test, predicted, zero_division=0), # Combines precision and recall into one measure.
+        'roc_auc': roc_auc_score(y_test, scores), # Assesses ranking across all thresholds, not only the default used by predict().
+        'average_precision': average_precision_score(y_test, scores), # Summarises precision across recall levels.
+        'confusion_matrix': confusion_matrix(y_test, predicted, labels=[0, 1]), # Rows are actual classes [0, 1]; columns are predicted classes [0, 1].
     }
 
 def split_data_three_way(df, features=BASELINE_FEATURES):
     """Create reproducible 64% training, 16% validation and 20% test sets."""
-    # fail if configured proportions are changed incorrectly.
+    # Fail if the configured proportions are changed incorrectly.
     if not abs(TRAIN_SIZE + VALIDATION_SIZE + FINAL_TEST_SIZE - 1.0) < 1e-12:
         raise ValueError('Split proportions must sum to 1.0')
 
-    X = df[features].copy() # contains only the requested model inputs.
-    y = df[TARGET] # contains the future outcome the model is trying to predict.
+    X = df[features].copy() # Contains only the requested model inputs.
+    y = df[TARGET] # Contains the future outcome the model is trying to predict.
 
-    # reserve the final test set.
+    # Reserve the final test set.
     X_train_and_validation, X_final_test, y_train_and_validation, y_final_test = (
         train_test_split(
             X,
@@ -113,10 +113,10 @@ def split_data_three_way(df, features=BASELINE_FEATURES):
         )
     )
 
-    # first split leaves 80% for training plus validation. make validation equal to 16% of the full dataset 16/80 = 20%.
+    # The first split leaves 80% for training plus validation, so validation needs 16/80 = 20% of it.
     validation_share = VALIDATION_SIZE / (TRAIN_SIZE + VALIDATION_SIZE)
 
-    # split remaining records into the final training and validation sets. stratify keeps the class-0/class-1 balance similar in each partition.
+    # Split the remaining records into training and validation sets. Stratifying keeps the class-0/class-1 balance similar in each partition.
     X_train, X_validation, y_train, y_validation = train_test_split(
         X_train_and_validation,
         y_train_and_validation,
@@ -135,13 +135,9 @@ def split_data_three_way(df, features=BASELINE_FEATURES):
     )
 
 
-def run_model(df, features, model_file=None):
-    """Fit one feature set and evaluate it on validation and final-test data.
-
-    The same split proportions and random state are used for every feature set,
-    allowing a controlled comparison between the baseline and an extension.
-    """
-    # for 800 records these partitions contain 512, 128 and 160 rows.
+def run_model(df, features, model_file=None, *, evaluate_final=False):
+    """Fit one feature set and evaluate it on validation data, and on final-test data if requested."""
+    # For 800 records these partitions contain 512, 128 and 160 rows.
     (
         X_train,
         X_validation,
@@ -151,26 +147,28 @@ def run_model(df, features, model_file=None):
         y_final_test,
     ) = split_data_three_way(df, features)
 
-    # reference always predicts the most common class.
+    # The reference always predicts the most common class.
     reference = DummyClassifier(strategy='most_frequent')
     reference.fit(X_train, y_train)
 
-    # build and fit the complete imputation -> scaling -> logistic regression workflow using training records only.
+    # Fit the imputation -> scaling -> logistic regression workflow on training records only.
     pipeline = build_pipeline()
     pipeline.fit(X_train, y_train)
 
-    
     if model_file is not None:
         model_file.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(pipeline, model_file)
 
-    # validation results
-    validation_reference_results = evaluate(reference, X_validation, y_validation, SELECTED_THRESHOLD) # Dummy classifier
-    validation_results = evaluate(pipeline, X_validation, y_validation, SELECTED_THRESHOLD) # Logistic regression pipeline
+    # Validation results.
+    validation_reference_results = evaluate(reference, X_validation, y_validation, SELECTED_THRESHOLD) # Dummy classifier.
+    validation_results = evaluate(pipeline, X_validation, y_validation, SELECTED_THRESHOLD) # Logistic regression pipeline.
 
-    # final test is evaluated after model choices.
+    # The final test is evaluated only after model choices are made.
     final_reference_results = None
     final_results = None
+    if evaluate_final:
+        final_reference_results = evaluate(reference, X_final_test, y_final_test, SELECTED_THRESHOLD)
+        final_results = evaluate(pipeline, X_final_test, y_final_test, SELECTED_THRESHOLD)
 
     return {
         'features': features,

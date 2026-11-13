@@ -3,13 +3,12 @@ import unittest
 from pathlib import Path
 import pandas as pd
 from src.decisions import (
-    HIGHER_REVIEW_THRESHOLD,
-    LOWER_REVIEW_THRESHOLD,
     advisory_decision,
     validate_application_fields,
     validate_score,
 )
 from src.model import (
+    SELECTED_THRESHOLD,
     BASELINE_FEATURES,
     EXTENDED_FEATURES_VER_1,
     EXTENDED_FEATURES_VER_2,
@@ -26,6 +25,8 @@ VALID_APPLICATION = {
 }
 
 class GenericValidationTests(unittest.TestCase):
+    """Tests for score and required-field validation."""
+
     def test_valid_score(self):
         self.assertEqual(validate_score(0.4), 0.4)
 
@@ -42,32 +43,34 @@ class GenericValidationTests(unittest.TestCase):
 
 
 class AdvisoryDecisionTests(unittest.TestCase):
-    def test_score_below_lower_threshold_gets_standard_review(self):
-        decision = advisory_decision(LOWER_REVIEW_THRESHOLD - 0.01, VALID_APPLICATION)
+    """Tests for the advisory outcomes around the selected threshold."""
+
+    def test_score_below_selected_threshold_gets_standard_review(self):
+        decision = advisory_decision(SELECTED_THRESHOLD - 0.01, VALID_APPLICATION, threshold=SELECTED_THRESHOLD)
 
         self.assertEqual(decision['outcome'], 'STANDARD_REVIEW')
         self.assertIn('No configured escalation condition', decision['reason'])
         self.assertEqual(decision['status'], 'HUMAN REVIEW REQUIRED')
 
-    def test_lower_threshold_gets_middle_band(self):
-        decision = advisory_decision(LOWER_REVIEW_THRESHOLD, VALID_APPLICATION)
+    def test_selected_threshold_gets_enhanced_review(self):
+        decision = advisory_decision(SELECTED_THRESHOLD, VALID_APPLICATION, threshold=SELECTED_THRESHOLD)
+
+        self.assertEqual(decision['outcome'], 'ENHANCED_RISK_REVIEW')
+
+    def test_score_just_below_selected_threshold_gets_standard_review(self):
+        decision = advisory_decision(SELECTED_THRESHOLD - 0.01, VALID_APPLICATION, threshold=SELECTED_THRESHOLD)
 
         self.assertEqual(decision['outcome'], 'STANDARD_REVIEW')
 
-    def test_score_just_below_higher_threshold_gets_standard_review(self):
-        decision = advisory_decision(HIGHER_REVIEW_THRESHOLD - 0.01, VALID_APPLICATION)
-
-        self.assertEqual(decision['outcome'], 'STANDARD_REVIEW')
-
-    def test_higher_threshold_gets_enhanced_review(self):
-        decision = advisory_decision(HIGHER_REVIEW_THRESHOLD, VALID_APPLICATION)
+    def test_selected_threshold_returns_risk_reason(self):
+        decision = advisory_decision(SELECTED_THRESHOLD, VALID_APPLICATION, threshold=SELECTED_THRESHOLD)
 
         self.assertEqual(decision['outcome'], 'ENHANCED_RISK_REVIEW')
         self.assertIn('Model score meets selected risk-review threshold', decision['reason'])
         self.assertEqual(decision['status'], 'HUMAN REVIEW REQUIRED')
 
-    def test_score_above_higher_threshold_gets_enhanced_review(self):
-        decision = advisory_decision(HIGHER_REVIEW_THRESHOLD + 0.01, VALID_APPLICATION)
+    def test_score_above_selected_threshold_gets_enhanced_review(self):
+        decision = advisory_decision(SELECTED_THRESHOLD + 0.01, VALID_APPLICATION, threshold=SELECTED_THRESHOLD)
 
         self.assertEqual(decision['outcome'], 'ENHANCED_RISK_REVIEW')
 
@@ -75,7 +78,7 @@ class AdvisoryDecisionTests(unittest.TestCase):
         for score in (-0.01, 1.01, float('nan'), '0.4'):
             with self.subTest(score=score):
                 with self.assertRaises(ValueError):
-                    advisory_decision(score, VALID_APPLICATION)
+                    advisory_decision(score, VALID_APPLICATION, threshold=SELECTED_THRESHOLD)
 
     def test_missing_required_application_field_is_rejected(self):
         application = {
@@ -85,10 +88,12 @@ class AdvisoryDecisionTests(unittest.TestCase):
         }
 
         with self.assertRaisesRegex(ValueError, 'debt_to_income_ratio'):
-            advisory_decision(0.4, application)
+            advisory_decision(0.4, application, threshold=SELECTED_THRESHOLD)
 
 
 class ModelSplitTests(unittest.TestCase):
+    """Tests for the data split, feature sets and model runner."""
+
     def test_three_way_split_is_disjoint_and_has_expected_sizes(self):
         frame = pd.DataFrame({
             'credit_score': range(600, 700),

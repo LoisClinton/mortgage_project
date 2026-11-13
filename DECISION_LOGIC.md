@@ -435,36 +435,47 @@ The applicant example uses this same feature list and threshold. `loan_to_value_
 
 ## Advisory Decision Logic
 
-The current decision logic uses two thresholds but produces the same STANDARD REVIEW outcome for both the middle and lower bands. I should make the logical system more substantive, while keeping it appropriately simple.
+The earlier version used two score thresholds but gave the same STANDARD_REVIEW outcome for the middle and lower bands. It now uses one selected threshold (`0.25`) with distinct review types, based on the model score and independent mortgage information. The system never approves or declines an application: every outcome carries the status `HUMAN REVIEW REQUIRED`.
 
-#### Current code:
+### Implemented workflow (`src/assessment.py`, `src/decisions.py`)
 
-```python
-if score >= HIGHER_REVIEW_THRESHOLD:
-    outcome = "ENHANCED REVIEW"
+1. Find the missing required fields. `None` and numeric NaN count as missing.
+2. Validate the fields that are present. An invalid value raises an error, even when another field is missing.
+3. If any field is missing, do not score the application. Return `INFORMATION_COMPLETION_REVIEW`, list the missing fields, and still list any triggers that can be observed from the available data.
+4. Otherwise score the application and apply the rules below.
+5. Collect every rule that applies, not only the first. Affordability triggers decide the outcome before risk triggers.
 
-elif score >= LOWER_REVIEW_THRESHOLD:
-    outcome = "STANDARD REVIEW"
+The threshold must be passed explicitly. There is no hidden default, so the rules cannot quietly use the wrong cut-off.
 
-else:
-    outcome = "STANDARD REVIEW"
-```
-
-### Idea
-
-Introduce distinct types of review based on the model score and independent mortgage information.
-
-| Rule | Condition                                           | Proposed action               |
+| Rule | Condition                                           | Action                        |
 | ---- | --------------------------------------------------- | ----------------------------- |
 | R1   | DTI above 0.45                                      | Affordability review          |
 | R2   | LTV above 90%                                       | Affordability review          |
-| R3   | Model score at or above selected threshold          | Enhanced risk review          |
-| R4   | At least two recent missed payments                 | Enhanced risk review          |
-| R5   | A required affordability or credit field is missing | Information-completion review |
-| R6   | Two or more required fields are missing             | Enhanced information review   |
-| R7   | None of the above                                   | Standard review               |
+| R3   | Model score at or above selected threshold (0.25)   | Enhanced risk review          |
+| R4   | At least two missed payments in the last 24 months  | Enhanced risk review          |
+| R5   | Any required field is missing                       | Information-completion review |
+| R6   | None of the above                                   | Standard review               |
 
-Not FCA rules or actual lender policy.
+Priority: information completion, then affordability, then risk, then standard. Not FCA rules or actual lender policy.
+
+Required fields are `credit_score`, `debt_to_income_ratio`, `missed_payments_24m`, `previous_default_flag` and `loan_to_value_pct`. Domain checks reject, for example, a credit score outside 300–900, a DTI outside 0–2, a `previous_default_flag` that is not 0 or 1, and a non-numeric or out-of-range score or threshold.
+
+**Decision change:** the earlier plan had a separate R6 "Enhanced information review" for two or more missing fields. I did not implement it. Several missing fields only mean less information, and that is not evidence of higher credit risk, so every incomplete application uses the same information-completion route. This is tested.
+
+### Final-test evidence
+
+The held-out final test is evaluated only for the selected model (`run_model(..., evaluate_final=True)`). Candidate comparison uses validation data only, so the final result is not used to choose between models. The result is saved by `src/reporting.py`:
+
+- `reports/selected_model_final_test_metrics.json`
+- `reports/figures/selected_model_final_test_confusion_matrix.png`
+
+Selected model on the final test (160 applications, threshold 0.25): accuracy 0.681, precision 0.357, recall 0.571, F1 0.440, ROC-AUC 0.716, average precision 0.431. Confusion matrix (rows actual 0/1, columns predicted 0/1): `[[89, 36], [15, 20]]`.
+
+Recall on the final test (0.571) is below the 0.60 validation target. The model should be presented as a risk-ranking aid for human review, not as an accurate classifier.
+
+### Tests
+
+The 36 tests cover the threshold, DTI, LTV and missed-payment boundaries, rule priority, every combination of risk conditions, missing and invalid fields, invalid scores and thresholds, and the saved evidence.
 
 #### Missing-value review rules
 
@@ -474,14 +485,12 @@ should not be silently treated as evidence of low or high risk, and an
 imputed value should not be presented to a reviewer as the applicant's
 confirmed value.
 
-The proposed missing-value rules are therefore:
+The missing-value rule is therefore:
 
-- **R5 — Information-completion review:** if a field needed for affordability
-  or credit assessment is missing, request or verify the relevant evidence
-  before relying on that field.
-- **R6 — Enhanced information review:** if two or more required fields are
-  missing, escalate the case for enhanced human review because the available
-  evidence is more limited.
+- **R5 — Information-completion review:** if a required field is missing,
+  do not score the application. Ask for or verify the missing evidence before
+  relying on it. Observed affordability and risk triggers are still listed.
+  Several missing fields use the same route (see the decision change above).
 - Missing `application_id` is a data-integrity error, not a risk-review type.
 - Missing `repayment_difficulty_12m` is expected only when scoring a new
   applicant; it is the historical training target and must never be requested

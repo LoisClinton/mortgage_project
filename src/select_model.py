@@ -1,3 +1,4 @@
+"""Select the feature set and threshold using validation data only."""
 from src.model import (
     EXTENDED_FEATURES_VER_1,
     EXTENDED_FEATURES_VER_2,
@@ -13,7 +14,7 @@ MIN_VALIDATION_RECALL = 0.60
 
 
 def select_configuration(df):
-
+    """Choose the feature set and threshold using validation data only."""
     candidates = []
 
     for features in (
@@ -80,6 +81,7 @@ def select_configuration(df):
 
 
 def print_configuration(label, configuration):
+    """Print one candidate configuration with its validation results."""
     selected_metrics = configuration["validation_at_threshold"]
     threshold_table = pd.DataFrame(configuration["threshold_table"])[
         ["threshold", "recall", "precision", "f1", "accuracy", "tp", "fp", "fn", "tn"]
@@ -114,6 +116,7 @@ def print_configuration(label, configuration):
 
 
 def main():
+    """Print the selected configuration and the candidate comparison."""
     df = pd.read_csv("data/mortgage_data.csv")
     winner, candidates = select_configuration(df)
     print_configuration("Selected configuration", winner)

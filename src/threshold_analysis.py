@@ -36,7 +36,7 @@ RANKING_METRICS_FIGURE_FILE = (
     FIGURE_FILE.parent / "model_comparison_roc_auc_average_precision.png"
 )
 CONFUSION_FIGURE_FILE = (
-    FIGURE_FILE.parent / "final_test_confusion_matrices.png"
+    FIGURE_FILE.parent / "validation_confusion_matrices.png"
 )
 ERROR_COUNTS_FIGURE_FILE = (
     FIGURE_FILE.parent / "model_comparison_false_positives_negatives.png"
@@ -175,7 +175,7 @@ def plot_ranking_metrics(validation_models):
 
 
 def plot_confusion_matrices(models):
-    """Save confusion matrices for each model on the untouched final test."""
+    """Save confusion matrices for each model on validation data."""
     figure, axes = plt.subplots(
         1,
         len(models),
@@ -218,7 +218,7 @@ def plot_confusion_matrices(models):
                 )
 
     figure.suptitle(
-        "Confusion matrices "
+        "Validation confusion matrices "
         f"(classification threshold {SELECTED_THRESHOLD:.2f})"
     )
     figure.colorbar(image, ax=axes, fraction=0.025, pad=0.04)
@@ -365,10 +365,10 @@ def plot_individual_error_counts(results_by_model):
 
 
 def main():
+    """Print the threshold tables and save all comparison graphs."""
     df = load_data()
     results_by_model = {}
     validation_models = {}
-    final_models = {}
 
     for label, features in (
         ("Two-feature baseline", BASELINE_FEATURES),
@@ -387,7 +387,6 @@ def main():
         model = build_pipeline()
         model.fit(X_train, y_train)
         validation_models[label] = (model, X_validation, y_validation)
-        final_models[label] = (model, X_final_test, y_final_test)
 
         print(f"\n{label} (validation data)")
         print("cutoff   recall  precision   F1    TP   FP   FN   TN")
